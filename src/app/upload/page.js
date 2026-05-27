@@ -205,8 +205,24 @@ export default function Upload() {
                 </button>
 
                 {result && (
-                    <div className="mt-8 bg-gray-900 border border-gray-700 rounded-lg p-6 whitespace-pre-wrap text-gray-200 text-sm leading-relaxed">
-                        {result}
+                    <div className="mt-8 flex flex-col gap-4">
+                        {result.split("\n").map((line, index) => {
+                            if (line.startsWith("###") || line.startsWith("##") || (line.startsWith("**") && line.endsWith("**"))) {
+                                return (
+                                    <h2 key={index} className="text-xl font-bold text-white mt-6 border-b border-gray-700 pb-2">
+                                        {line.replace(/#{1,3}\s*/g, "").replace(/\*\*/g, "").trim()}
+                                    </h2>
+                                );
+                            }
+                            if (line.trim() === "") {
+                                return <div key={index} className="h-1"/>;
+                            }
+                            return (
+                                <p key={index} className="text-gray-300 text-sm leading-relaxed">
+                                    {line.replace(/\*\*/g, "")}
+                                </p>
+                            );
+                        })}
                     </div>
                 )}
 

@@ -11,9 +11,9 @@ export default function Home() {
         <p className="text-sm text-gray-600 mb-8">
           Built for students.
         </p>
-        <button className="bg-white text-black font-semibold px-8 py-3 rounded-full hover:bg-gray-200">
+        <a href="/upload" className="bg-white text-black font-semibold px-8 py-3 rounded-full hover:bg-gray-200">
           Get Started Free
-        </button>
+        </a>
       </div>
     </main>
   );
