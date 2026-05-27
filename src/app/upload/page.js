@@ -61,6 +61,8 @@ export default function Upload() {
     const [time, setTime] = useState("30 mins");
     const [notes, setNotes] = useState("");
     const [file, setFile] = useState(null);
+    const [result, setResult] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleFileChange = (e) => {
         const selected = e.target.files[0];
@@ -68,6 +70,26 @@ export default function Upload() {
             setFile(selected);
         } 
     }; 
+
+    const handleGenerate = async () => {
+        if (!subject || !course) {
+            alert("Please enter your programme and subject before generating.");
+            return;
+        }
+
+        setLoading(true);
+        setResult("");
+
+        const response = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subject, course, time, notes }),
+        });
+
+        const data = await response.json();
+        setResult(data.result);
+        setLoading(false);
+    };
 
     return (
         <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-12">
@@ -174,9 +196,19 @@ export default function Upload() {
                 />
                 </div>
 
-                <button className="bg-white text-black font-semibold py-3 rounded-full hover:bg-gray-200">
-                    Generate My Study Plan
+                <button
+                    onClick={handleGenerate}
+                    disabled={loading}
+                    className="bg-white text-black font-semibold py-3 rounded-full hover:bg-gray-200 disabled:opacity-50"
+                    >
+                        {loading ? "Generating your study plan..." : "Generate My Study Plan"}
                 </button>
+
+                {result && (
+                    <div className="mt-8 bg-gray-900 border border-gray-700 rounded-lg p-6 whitespace-pre-wrap text-gray-200 text-sm leading-relaxed">
+                        {result}
+                    </div>
+                )}
 
             </div>
         </div>
