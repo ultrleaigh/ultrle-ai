@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 const COURSES = [
     "Accounting",
@@ -63,6 +64,25 @@ export default function Upload() {
     const [file, setFile] = useState(null);
     const [result, setResult] = useState("");
     const [loading, setLoading] = useState(false);
+    const [user, setUser] = useState(null);
+    const [profile, setProfile] = useState(null);
+
+    useEffect(() => {
+    const getUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        if (user) {
+            const { data: profileData } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", user.id)
+                .single();
+            setProfile(profileData);
+        }
+    };
+    getUser();
+}, []);
 
     const handleFileChange = (e) => {
         const selected = e.target.files[0];
@@ -72,13 +92,36 @@ export default function Upload() {
     }; 
 
     const handleGenerate = async () => {
-        if (!subject || !course) {
-            alert("Please enter your programme and subject before generating.");
+    if (!subject || !course) {
+        alert("Please enter your programme and subject before generating.");
+        return;
+    }
+
+    if (!user) {
+        alert("Please log in to generate a study plan.");
+        window.location.href = "/login";
+        return;
+    }
+
+    if (profile && !profile.is_pro) {
+        const lastReset = new Date(profile.last_reset);
+        const now = new Date();
+        const hoursSinceReset = (now - lastReset) / (1000 * 60 * 60);
+
+        if (hoursSinceReset >= 24) {
+            await supabase
+                .from("profiles")
+                .update({ daily_uses: 0, last_reset: new Date() })
+                .eq("id", user.id);
+            setProfile({ ...profile, daily_uses: 0 });
+        } else if (profile.daily_uses >= 5) {
+            alert("You've used all 5 free generations for today. Come back tomorrow or upgrade to Pro for unlimited access.");
             return;
         }
+    }
 
-        setLoading(true);
-        setResult("");
+    setLoading(true);
+    setResult("");
 
         const response = await fetch("/api/generate", {
             method: "POST",
@@ -87,8 +130,18 @@ export default function Upload() {
         });
 
         const data = await response.json();
-        setResult(data.result);
-        setLoading(false);
+setResult(data.result);
+
+if (user && profile && !profile.is_pro) {
+    const newCount = (profile.daily_uses || 0) + 1;
+    await supabase
+        .from("profiles")
+        .update({ daily_uses: newCount })
+        .eq("id", user.id);
+    setProfile({ ...profile, daily_uses: newCount });
+}
+
+setLoading(false);
     };
 
     return (
@@ -101,7 +154,21 @@ export default function Upload() {
                     Fill in the details below and Ultrle AI will do the rest.
                 </p>
 
-                <div className="flex flex-col gap-6">
+                {profile && !profile.is_pro && (
+    <div className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 mb-2 text-center">
+        <p className="text-sm text-gray-400">
+            Free generations today:{" "}
+            <span className="text-white font-semibold">
+                {Math.max(0, 5 - (profile.daily_uses || 0))} / 5 remaining
+            </span>
+        </p>
+        <a href="/pricing" className="text-xs text-yellow-400 underline mt-1 block">
+            Upgrade to Pro for unlimited access
+        </a>
+    </div>
+)}
+
+<div className="flex flex-col gap-6">
 
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-semibold text-gray-300">
