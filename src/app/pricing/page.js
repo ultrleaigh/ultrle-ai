@@ -1,9 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Pricing() {
     const [loading, setLoading] = useState(false);
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        getUser();
+    }, []);
+
+    const handleUpgrade = async () => {
+        if (!user) {
+            window.location.href = "/signup";
+            return;
+        }
+
+        setLoading(true);
+
+        const PaystackPop = (await import("@paystack/inline-js")).default;
+        const handler = new PaystackPop();
+
+        handler.newTransaction({
+            key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+            email: user.email,
+            amount: 30 * 100,
+            currency: "GHS",
+            onSuccess: async (transaction) => {
+                await supabase
+                    .from("profiles")
+                    .update({ is_pro: true })
+                    .eq("id", user.id);
+                window.location.href = "/upload?upgraded=true";
+            },
+            onCancel: () => {
+                setLoading(false);
+            },
+        });
+    };
 
     return (
         <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-12">
@@ -31,7 +70,7 @@ export default function Pricing() {
                             <li>✗ Download as PDF</li>
                         </ul>
                         
-                        <a href="/signup"
+                        <a  href="/signup"
                             className="mt-4 border border-white text-white font-semibold py-3 rounded-full text-center hover:bg-white hover:text-black transition-colors"
                         >
                             Get Started Free
@@ -57,11 +96,11 @@ export default function Pricing() {
                             <li>✓ Priority support</li>
                         </ul>
                         <button
-                            onClick={() => alert("Payments coming soon!")}
+                            onClick={handleUpgrade}
                             disabled={loading}
                             className="mt-4 bg-black text-white font-semibold py-3 rounded-full hover:bg-gray-800 disabled:opacity-50"
                         >
-                            Upgrade to Pro
+                            {loading ? "Loading..." : "Upgrade to Pro"}
                         </button>
                     </div>
 
