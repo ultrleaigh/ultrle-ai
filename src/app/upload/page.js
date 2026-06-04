@@ -136,10 +136,18 @@ export default function Upload() {
         setLoading(true);
         setResult("");
 
+        const formData = new FormData();
+        formData.append("subject", subject);
+        formData.append("course", course);
+        formData.append("time", time);
+        formData.append("notes", notes);
+        if (file) {
+            formData.append("file", file);
+        }
+
         const response = await fetch("/api/generate", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ subject, course, time, notes }),
+            body: formData,
         });
 
         const data = await response.json();
