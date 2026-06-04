@@ -41,8 +41,7 @@ export default function SignUp() {
             });
         }
 
-        setMessage("Account created! Check your email to confirm your account.");
-        setLoading(false);
+        window.location.href = "/upload";
     };
 
     return (

@@ -64,64 +64,77 @@ export default function Upload() {
     const [file, setFile] = useState(null);
     const [result, setResult] = useState("");
     const [loading, setLoading] = useState(false);
+    const [checking, setChecking] = useState(true);
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
 
     useEffect(() => {
-    const getUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
 
-        if (user) {
+            if (!user) {
+                window.location.href = "/signup";
+                return;
+            }
+
+            setUser(user);
+
             const { data: profileData } = await supabase
                 .from("profiles")
                 .select("*")
                 .eq("id", user.id)
                 .single();
             setProfile(profileData);
-        }
-    };
-    getUser();
-}, []);
+            setChecking(false);
+        };
+        getUser();
+    }, []);
+
+    if (checking) {
+        return (
+            <main className="min-h-screen bg-black text-white flex items-center justify-center">
+                <p className="text-gray-400">Loading...</p>
+            </main>
+        );
+    }
 
     const handleFileChange = (e) => {
         const selected = e.target.files[0];
         if (selected) {
             setFile(selected);
-        } 
-    }; 
+        }
+    };
 
     const handleGenerate = async () => {
-    if (!subject || !course) {
-        alert("Please enter your programme and subject before generating.");
-        return;
-    }
-
-    if (!user) {
-        alert("Please log in to generate a study plan.");
-        window.location.href = "/login";
-        return;
-    }
-
-    if (profile && !profile.is_pro) {
-        const lastReset = new Date(profile.last_reset);
-        const now = new Date();
-        const hoursSinceReset = (now - lastReset) / (1000 * 60 * 60);
-
-        if (hoursSinceReset >= 24) {
-            await supabase
-                .from("profiles")
-                .update({ daily_uses: 0, last_reset: new Date() })
-                .eq("id", user.id);
-            setProfile({ ...profile, daily_uses: 0 });
-        } else if (profile.daily_uses >= 5) {
-            alert("You've used all 5 free generations for today. Come back tomorrow or upgrade to Pro for unlimited access.");
+        if (!subject || !course) {
+            alert("Please enter your programme and subject before generating.");
             return;
         }
-    }
 
-    setLoading(true);
-    setResult("");
+        if (!user) {
+            window.location.href = "/signup";
+            return;
+        }
+
+        if (profile && !profile.is_pro) {
+            const lastReset = new Date(profile.last_reset);
+            const now = new Date();
+            const hoursSinceReset = (now - lastReset) / (1000 * 60 * 60);
+
+            if (hoursSinceReset >= 24) {
+                await supabase
+                    .from("profiles")
+                    .update({ daily_uses: 0, last_reset: new Date() })
+                    .eq("id", user.id);
+                setProfile({ ...profile, daily_uses: 0 });
+            } else if (profile.daily_uses >= 5) {
+                alert("You've used all 5 free generations for today. Come back tomorrow or upgrade to Pro for unlimited access.");
+                return;
+            }
+        }
+
+        setLoading(true);
+        setResult("");
 
         const response = await fetch("/api/generate", {
             method: "POST",
@@ -130,18 +143,18 @@ export default function Upload() {
         });
 
         const data = await response.json();
-setResult(data.result);
+        setResult(data.result);
 
-if (user && profile && !profile.is_pro) {
-    const newCount = (profile.daily_uses || 0) + 1;
-    await supabase
-        .from("profiles")
-        .update({ daily_uses: newCount })
-        .eq("id", user.id);
-    setProfile({ ...profile, daily_uses: newCount });
-}
+        if (user && profile && !profile.is_pro) {
+            const newCount = (profile.daily_uses || 0) + 1;
+            await supabase
+                .from("profiles")
+                .update({ daily_uses: newCount })
+                .eq("id", user.id);
+            setProfile({ ...profile, daily_uses: newCount });
+        }
 
-setLoading(false);
+        setLoading(false);
     };
 
     return (
@@ -155,20 +168,20 @@ setLoading(false);
                 </p>
 
                 {profile && !profile.is_pro && (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 mb-2 text-center">
-        <p className="text-sm text-gray-400">
-            Free generations today:{" "}
-            <span className="text-white font-semibold">
-                {Math.max(0, 5 - (profile.daily_uses || 0))} / 5 remaining
-            </span>
-        </p>
-        <a href="/pricing" className="text-xs text-yellow-400 underline mt-1 block">
-            Upgrade to Pro for unlimited access
-        </a>
-    </div>
-)}
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 mb-6 text-center">
+                        <p className="text-sm text-gray-400">
+                            Free generations today:{" "}
+                            <span className="text-white font-semibold">
+                                {Math.max(0, 5 - (profile.daily_uses || 0))} / 5 remaining
+                            </span>
+                        </p>
+                        <a href="/pricing" className="text-xs text-yellow-400 underline mt-1 block">
+                            Upgrade to Pro for unlimited access
+                        </a>
+                    </div>
+                )}
 
-<div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-6">
 
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-semibold text-gray-300">
@@ -178,13 +191,13 @@ setLoading(false);
                             value={course}
                             onChange={(e) => setCourse(e.target.value)}
                             className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white"
-                            >
-                                <option value="">Select your programme</option>
-                                {COURSES.map((c) => (
-                                    <option key={c} value={c}>
-                                        {c}
-                                    </option>
-                                ))}
+                        >
+                            <option value="">Select your programme</option>
+                            {COURSES.map((c) => (
+                                <option key={c} value={c}>
+                                    {c}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -209,19 +222,19 @@ setLoading(false);
                             value={time}
                             onChange={(e) => setTime(e.target.value)}
                             className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white"
-                            >
-                                <option>30 mins</option>
-                                <option>1 hour</option>
-                                <option>2 hours</option>
-                                <option>5 hours</option>
-                                <option>1 day</option>
-                                <option>2 days</option>
-                                <option>3 days</option>
-                                <option>1 week</option>
+                        >
+                            <option>30 mins</option>
+                            <option>1 hour</option>
+                            <option>2 hours</option>
+                            <option>5 hours</option>
+                            <option>1 day</option>
+                            <option>2 days</option>
+                            <option>3 days</option>
+                            <option>1 week</option>
                         </select>
                     </div>
-                    
-                    <div className="flex flex-col gap-2">               
+
+                    <div className="flex flex-col gap-2">
                         <label className="text-sm font-semibold text-gray-300">
                             Upload your lecture slides or notes
                         </label>
@@ -242,59 +255,59 @@ setLoading(false);
                             )}
                         </div>
                         <input
-                        id="fileInput"
-                        type="file"
-                        accept=".pdf,.ppt,.pptx,.doc,.docx"
-                        onChange={handleFileChange}
-                        className="hidden"
-                    />
-                </div>
+                            id="fileInput"
+                            type="file"
+                            accept=".pdf,.ppt,.pptx,.doc,.docx"
+                            onChange={handleFileChange}
+                            className="hidden"
+                        />
+                    </div>
 
-                <div className="flex flex-col gap-2">
-                    <label className="text-sm font-semibold text-gray-300">
-                        Or paste your notes here
-                    </label>
-                    <textarea
-                    placeholder="Paste your lecture notes here..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={8}
-                    className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-white resize-none"
-                />
-                </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm font-semibold text-gray-300">
+                            Or paste your notes here
+                        </label>
+                        <textarea
+                            placeholder="Paste your lecture notes here..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            rows={8}
+                            className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-white resize-none"
+                        />
+                    </div>
 
-                <button
-                    onClick={handleGenerate}
-                    disabled={loading}
-                    className="bg-white text-black font-semibold py-3 rounded-full hover:bg-gray-200 disabled:opacity-50"
+                    <button
+                        onClick={handleGenerate}
+                        disabled={loading}
+                        className="bg-white text-black font-semibold py-3 rounded-full hover:bg-gray-200 disabled:opacity-50"
                     >
                         {loading ? "Generating your study plan..." : "Generate My Study Plan"}
-                </button>
+                    </button>
 
-                {result && (
-                    <div className="mt-8 flex flex-col gap-4">
-                        {result.split("\n").map((line, index) => {
-                            if (line.startsWith("###") || line.startsWith("##") || (line.startsWith("**") && line.endsWith("**"))) {
+                    {result && (
+                        <div className="mt-8 flex flex-col gap-4">
+                            {result.split("\n").map((line, index) => {
+                                if (line.startsWith("###") || line.startsWith("##") || (line.startsWith("**") && line.endsWith("**"))) {
+                                    return (
+                                        <h2 key={index} className="text-xl font-bold text-white mt-6 border-b border-gray-700 pb-2">
+                                            {line.replace(/#{1,3}\s*/g, "").replace(/\*\*/g, "").trim()}
+                                        </h2>
+                                    );
+                                }
+                                if (line.trim() === "") {
+                                    return <div key={index} className="h-1" />;
+                                }
                                 return (
-                                    <h2 key={index} className="text-xl font-bold text-white mt-6 border-b border-gray-700 pb-2">
-                                        {line.replace(/#{1,3}\s*/g, "").replace(/\*\*/g, "").trim()}
-                                    </h2>
+                                    <p key={index} className="text-gray-300 text-sm leading-relaxed">
+                                        {line.replace(/\*\*/g, "")}
+                                    </p>
                                 );
-                            }
-                            if (line.trim() === "") {
-                                return <div key={index} className="h-1"/>;
-                            }
-                            return (
-                                <p key={index} className="text-gray-300 text-sm leading-relaxed">
-                                    {line.replace(/\*\*/g, "")}
-                                </p>
-                            );
-                        })}
-                    </div>
-                )}
+                            })}
+                        </div>
+                    )}
 
+                </div>
             </div>
-        </div>
-    </main>
-);
-}
+        </main>
+    );
+} 

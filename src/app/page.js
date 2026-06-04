@@ -5,13 +5,13 @@ export default function Home() {
         <h1 className="text-5xl font-bold mb-4">
           Ultrle AI
         </h1>
-        <p className="text-x1 text-gray-400 mb-4">
+        <p className="text-xl text-gray-400 mb-4">
           Upload your lecture slides. Get a personalised study plan, summaries, and practice questions in minutes.
         </p>
         <p className="text-sm text-gray-600 mb-8">
-          Built for students.
+          Built for students at KNUST, UG, UCC etc.
         </p>
-        <a href="/upload" className="bg-white text-black font-semibold px-8 py-3 rounded-full hover:bg-gray-200">
+        <a href="/signup" className="bg-white text-black font-semibold px-8 py-3 rounded-full hover:bg-gray-200">
           Get Started Free
         </a>
       </div>
