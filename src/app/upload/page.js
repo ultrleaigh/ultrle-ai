@@ -160,18 +160,19 @@ export default function Upload() {
     setResult("");
 
     try {
-        let fileText = "";
-        if (file) {
-            fileText = await extractTextFromPDF(file);
-        }
-
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 55000);
 
+        const formData = new FormData();
+        formData.append("subject", subject);
+        formData.append("course", course);
+        formData.append("time", time);
+        formData.append("notes", notes);
+        if (file) formData.append("file", file);
+
         const response = await fetch("/api/generate", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ subject, course, time, notes, fileText }),
+            body: formData,
             signal: controller.signal,
         });
 

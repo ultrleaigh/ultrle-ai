@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 export const maxDuration = 60;
 
@@ -6,7 +7,26 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function POST(request) {
     try {
-        const { subject, course, time, notes, fileText } = await request.json();
+        const formData = await request.formData();
+        const subject = formData.get("subject");
+        const course = formData.get("course");
+        const time = formData.get("time");
+        const notes = formData.get("notes");
+        const file = formData.get("file");
+
+        let fileText = "";
+
+        if (file && file.size > 0) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                fullText += content.items.map((item) => item.str).join(" ") + "\n";
+            }
+            fileText = fullText;
+        }
 
         const rawContent = fileText || notes || "No notes provided.";
         const contentToUse = rawContent.slice(0, 8000);
