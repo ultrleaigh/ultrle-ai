@@ -124,48 +124,64 @@ export default function Upload() {
 };
 
     const handleGenerate = async () => {
-        if (!subject || !course) {
-            alert("Please enter your programme and subject before generating.");
+    if (!subject || !course) {
+        alert("Please enter your programme and subject before generating.");
+        return;
+    }
+
+    if (!user) {
+        window.location.href = "/signup";
+        return;
+    }
+
+    if (profile && !profile.is_pro) {
+        const lastReset = new Date(profile.last_reset);
+        const now = new Date();
+        const hoursSinceReset = (now - lastReset) / (1000 * 60 * 60);
+
+        if (hoursSinceReset >= 24) {
+            await supabase
+                .from("profiles")
+                .update({ daily_uses: 0, last_reset: new Date() })
+                .eq("id", user.id);
+            setProfile({ ...profile, daily_uses: 0 });
+        } else if (profile.daily_uses >= 5) {
+            alert("You've used all 5 free generations for today. Come back tomorrow or upgrade to Pro for unlimited access.");
             return;
         }
+    }
 
-        if (!user) {
-            window.location.href = "/signup";
-            return;
-        }
+    setLoading(true);
+    setResult("");
 
-        if (profile && !profile.is_pro) {
-            const lastReset = new Date(profile.last_reset);
-            const now = new Date();
-            const hoursSinceReset = (now - lastReset) / (1000 * 60 * 60);
-
-            if (hoursSinceReset >= 24) {
-                await supabase
-                    .from("profiles")
-                    .update({ daily_uses: 0, last_reset: new Date() })
-                    .eq("id", user.id);
-                setProfile({ ...profile, daily_uses: 0 });
-            } else if (profile.daily_uses >= 5) {
-                alert("You've used all 5 free generations for today. Come back tomorrow or upgrade to Pro for unlimited access.");
-                return;
-            }
-        }
-
-        setLoading(true);
-        setResult("");
-
+    try {
         let fileText = "";
         if (file) {
             fileText = await extractTextFromPDF(file);
         }
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 55000);
+
         const response = await fetch("/api/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ subject, course, time, notes, fileText }),
+            signal: controller.signal,
         });
 
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
         const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
         setResult(data.result);
 
         if (user && profile && !profile.is_pro) {
@@ -177,8 +193,16 @@ export default function Upload() {
             setProfile({ ...profile, daily_uses: newCount });
         }
 
+    } catch (error) {
+        if (error.name === "AbortError") {
+            alert("This is taking too long. Please try again with shorter notes or a smaller file.");
+        } else {
+            alert("Something went wrong: " + error.message);
+        }
+    } finally {
         setLoading(false);
-    };
+    }
+};
 
     return (
         <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-12">
