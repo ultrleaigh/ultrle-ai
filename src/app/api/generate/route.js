@@ -1,48 +1,15 @@
 import Groq from "groq-sdk";
-import PDFParser from "pdf2json";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-async function extractTextFromPDF(buffer) {
-    return new Promise((resolve, reject) => {
-        const pdfParser = new PDFParser();
-
-        pdfParser.on("pdfParser_dataReady", (pdfData) => {
-            const text = pdfData.Pages.map((page) =>
-                page.Texts.map((t) => { try { return decodeURIComponent(t.R[0].T); } catch { return t.R[0].T; } }).join(" ")
-            ).join("\n");
-            resolve(text);
-        });
-
-        pdfParser.on("pdfParser_dataError", (error) => {
-            reject(error);
-        });
-
-        pdfParser.parseBuffer(buffer);
-    });
-}
-
 export async function POST(request) {
     try {
-        const formData = await request.formData();
-        const subject = formData.get("subject");
-        const course = formData.get("course");
-        const time = formData.get("time");
-        const notes = formData.get("notes");
-        const file = formData.get("file");
+        const { subject, course, time, notes, fileText } = await request.json();
 
-        let fileText = "";
-
-        if (file && file.size > 0) {
-            const buffer = Buffer.from(await file.arrayBuffer());
-            fileText = await extractTextFromPDF(buffer);
-        }
-
-        const contentToUse = fileText || notes || "No notes provided.";
+        const rawContent = fileText || notes || "No notes provided.";
+        const contentToUse = rawContent.slice(0, 8000);
 
         const prompt = `
-You are an expert university tutor helping a Ghanaian University student prepare for an exam.
-
 The student is studying: ${course}
 Their exam subject is: ${subject}
 They have: ${time} before their exam
@@ -68,11 +35,23 @@ Be specific, practical, and encouraging. Only use information from the provided 
 `;
 
         const completion = await groq.chat.completions.create({
-            messages: [{ role: "user", content: prompt }],
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert university tutor helping a Ghanaian university student prepare for an exam. You respond only using information from the student's provided notes — never add outside knowledge.",
+                },
+                { role: "user", content: prompt },
+            ],
             model: "llama-3.3-70b-versatile",
+            max_tokens: 4096,
+            temperature: 0.7,
         });
 
-        const text = completion.choices[0].message.content;
+        const text = completion.choices[0]?.message?.content;
+
+        if (!text) {
+            return Response.json({ error: "No response from model." }, { status: 500 });
+        }
 
         return Response.json({ result: text });
 

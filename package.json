@@ -16,10 +16,12 @@
     "groq-sdk": "^1.2.0",
     "next": "16.2.6",
     "pdf2json": "^4.0.3",
+    "pdfjs-dist": "^6.0.227",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.11",
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",

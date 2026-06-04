@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
 const COURSES = [
@@ -105,6 +105,24 @@ export default function Upload() {
         }
     };
 
+    const extractTextFromPDF = async (file) => {
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map((item) => item.str).join(" ");
+        fullText += pageText + "\n";
+    }
+    
+    return fullText;
+};
+
     const handleGenerate = async () => {
         if (!subject || !course) {
             alert("Please enter your programme and subject before generating.");
@@ -136,18 +154,15 @@ export default function Upload() {
         setLoading(true);
         setResult("");
 
-        const formData = new FormData();
-        formData.append("subject", subject);
-        formData.append("course", course);
-        formData.append("time", time);
-        formData.append("notes", notes);
+        let fileText = "";
         if (file) {
-            formData.append("file", file);
+            fileText = await extractTextFromPDF(file);
         }
 
         const response = await fetch("/api/generate", {
             method: "POST",
-            body: formData,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subject, course, time, notes, fileText }),
         });
 
         const data = await response.json();
