@@ -163,12 +163,16 @@ export default function Upload() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 55000);
 
+        let fileText = "";
+        if (file) {
+            fileText = await extractTextFromPDF(file);
+        }
+
         const formData = new FormData();
         formData.append("subject", subject);
         formData.append("course", course);
         formData.append("time", time);
-        formData.append("notes", notes);
-        if (file) formData.append("file", file);
+        formData.append("notes", fileText || notes);
 
         const response = await fetch("/api/generate", {
             method: "POST",
