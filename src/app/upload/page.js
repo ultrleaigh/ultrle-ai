@@ -100,7 +100,7 @@ export default function Upload() {
         const selected = e.target.files[0];
         if (selected) {
             if (selected.size > 10 * 1024 * 1024) {
-                alert("File is too large. Please upload a file smaller than 5MB.");
+                alert("File is too large. Please upload a file smaller than 10MB.");
                 return;
             }    
             setFile(selected);
@@ -111,7 +111,7 @@ export default function Upload() {
     try {
         setLoadingMessage("Reading your file...");
         const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "";
 
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
