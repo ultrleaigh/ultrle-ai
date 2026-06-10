@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 const COURSES = [
@@ -64,6 +64,7 @@ export default function Upload() {
     const [file, setFile] = useState(null);
     const [result, setResult] = useState("");
     const [loading, setLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState("");
     const [checking, setChecking] = useState(true);
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
@@ -71,14 +72,11 @@ export default function Upload() {
     useEffect(() => {
         const getUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-
             if (!user) {
                 window.location.href = "/signup";
                 return;
             }
-
             setUser(user);
-
             const { data: profileData } = await supabase
                 .from("profiles")
                 .select("*")
@@ -101,34 +99,40 @@ export default function Upload() {
     const handleFileChange = (e) => {
         const selected = e.target.files[0];
         if (selected) {
+            if (selected.size > 10 * 1024 * 1024) {
+                alert("File is too large. Please upload a file smaller than 10MB.");
+                return;
+            }    
             setFile(selected);
         }
     };
 
     const extractTextFromPDF = async (file) => {
     try {
-        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.js`;
+        setLoadingMessage("Reading your file...");
+        const pdfjsLib = await import("pdfjs-dist");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
         let fullText = "";
 
         for (let i = 1; i <= pdf.numPages; i++) {
+            setLoadingMessage(`Reading page ${i} of ${pdf.numPages}...`);
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
             const pageText = content.items.map((item) => item.str).join(" ");
             fullText += pageText + "\n";
         }
 
-        return fullText;
+        return fullText.trim();
     } catch (err) {
         console.error("PDF extraction failed:", err);
-        return "";
+        throw new Error("Could not read your PDF. Please try pasting your notes instead.");
     }
 };
 
-    const handleGenerate = async () => {
+const handleGenerate = async () => {
     if (!subject || !course) {
         alert("Please enter your programme and subject before generating.");
         return;
@@ -160,19 +164,34 @@ export default function Upload() {
     setResult("");
 
     try {
+        let contentToSend = notes;
+
+        if (file) {
+            const fileText = await extractTextFromPDF(file);
+            if (fileText && fileText.length > 50) {
+                contentToSend = fileText;
+            } else {
+                alert("Your file was uploaded but no text could be extracted from it. Using your pasted notes instead.");
+                contentToSend = notes;
+            }
+        }
+        
+        if (!contentToSend || contentToSend.trim().length < 10) {
+            alert("Please upload a file or paste your notes before generating.");
+            setLoading(false);
+            return;
+        }    
+
+        setLoadingMessage("Generating your study plan...");
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 55000);
-
-        let fileText = "";
-        if (file) {
-            fileText = await extractTextFromPDF(file);
-        }
 
         const formData = new FormData();
         formData.append("subject", subject);
         formData.append("course", course);
         formData.append("time", time);
-        formData.append("notes", fileText || notes);
+        formData.append("notes", contentToSend.slice(0, 8000));
 
         const response = await fetch("/api/generate", {
             method: "POST",
@@ -211,6 +230,7 @@ export default function Upload() {
         }
     } finally {
         setLoading(false);
+        setLoadingMessage("");
     }
 };
 
@@ -303,7 +323,7 @@ export default function Upload() {
                                 Click to upload a file
                             </p>
                             <p className="text-gray-600 text-xs">
-                                PDF, PPT, PPTX, DOC, DOCX supported
+                                PDF supported · Max 10MB
                             </p>
                             {file && (
                                 <p className="text-green-400 text-sm mt-3">
@@ -314,7 +334,7 @@ export default function Upload() {
                         <input
                             id="fileInput"
                             type="file"
-                            accept=".pdf,.ppt,.pptx,.doc,.docx"
+                            accept=".pdf"
                             onChange={handleFileChange}
                             className="hidden"
                         />
@@ -338,7 +358,7 @@ export default function Upload() {
                         disabled={loading}
                         className="bg-white text-black font-semibold py-3 rounded-full hover:bg-gray-200 disabled:opacity-50"
                     >
-                        {loading ? "Generating your study plan..." : "Generate My Study Plan"}
+                        {loading ? loadingMessage || "Generating your study plan..." : "Generate My Study Plan"}
                     </button>
 
                     {result && (
