@@ -287,6 +287,7 @@ const handleGenerate = async () => {
                             placeholder="e.g. Organic Chemistry, Microeconomics"
                             value={subject}
                             onChange={(e) => setSubject(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
                             className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white"
                         />
                     </div>
