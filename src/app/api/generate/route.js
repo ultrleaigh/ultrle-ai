@@ -29,22 +29,22 @@ Using ONLY the content from the notes above, do the following:
 
 ---
 
-STEP 1 — TOPICS TO FOCUS ON
+WHAT TO FOCUS ON
 List the most important topics from the notes that are most likely to appear in the exam. For each topic, write one sentence explaining why it is important.
 
 ---
 
-STEP 2 — TEACH EACH TOPIC
+UNDERSTANDING EACH TOPIC
 For every topic you listed above, teach it in full detail as a university professor would explain it to a student. Break it down step by step. Use simple, clear language. Use examples where helpful. Only use information from the provided notes — do not add outside knowledge.
 
 ---
 
-STEP 3 — FINAL SUMMARY
+QUICK REVISION
 Write a concise summary of everything taught in Step 2. This should serve as a quick revision sheet the student can read right before their exam.
 
 ---
 
-STEP 4 — TEST THE STUDENT
+CHECK YOUR UNDERSTANDING
 Create the following questions based strictly on the notes:
 
 a) 10 multiple choice questions with 4 options each (A, B, C, D) and indicate the correct answer for each.
