@@ -16,35 +16,51 @@ export async function POST(request) {
         const contentToUse = rawContent.slice(0, 8000);
 
         const prompt = `
+You are a university professor helping a Ghanaian university student prepare for an upcoming exam. The student has limited time and needs to focus only on what matters most.
+
 The student is studying: ${course}
 Their exam subject is: ${subject}
 They have: ${time} before their exam
 
-Here are their actual lecture notes and slides — base your entire response STRICTLY on this content:
+Here are their lecture notes and slides:
 ${contentToUse}
 
-Using ONLY the content above, generate the following in a clear, structured format:
+Using ONLY the content from the notes above, do the following:
 
-1. STUDY PLAN
-A prioritised step-by-step study plan based on the time they have available and the topics in their notes.
+---
 
-2. KEY SUMMARIES
-The most important topics and concepts from their notes that they must know for this exam.
+STEP 1 — TOPICS TO FOCUS ON
+List the most important topics from the notes that are most likely to appear in the exam. For each topic, write one sentence explaining why it is important.
 
-3. PRACTICE QUESTIONS
-10 practice questions with answers based strictly on their notes.
+---
 
-4. ESSAY OUTLINES
-2 possible essay questions with detailed outlines based on their notes.
+STEP 2 — TEACH EACH TOPIC
+For every topic you listed above, teach it in full detail as a university professor would explain it to a student. Break it down step by step. Use simple, clear language. Use examples where helpful. Only use information from the provided notes — do not add outside knowledge.
 
-Be specific, practical, and encouraging. Only use information from the provided notes — do not add outside information.
+---
+
+STEP 3 — FINAL SUMMARY
+Write a concise summary of everything taught in Step 2. This should serve as a quick revision sheet the student can read right before their exam.
+
+---
+
+STEP 4 — TEST THE STUDENT
+Create the following questions based strictly on the notes:
+
+a) 10 multiple choice questions with 4 options each (A, B, C, D) and indicate the correct answer for each.
+
+b) 3 essay questions with detailed model answers based on the notes.
+
+---
+
+Be encouraging, clear, and thorough. Speak directly to the student. Only use information from their notes.
 `;
 
         const completion = await groq.chat.completions.create({
             messages: [
                 {
                     role: "system",
-                    content: "You are an expert university tutor helping a Ghanaian university student prepare for an exam. You respond only using information from the student's provided notes — never add outside knowledge.",
+                    content: "You are a university professor helping a Ghanaian university student prepare for an exam. You teach clearly, explain thoroughly, and only use information from the student's provided notes — never add outside knowledge.",
                 },
                 { role: "user", content: prompt },
             ],
