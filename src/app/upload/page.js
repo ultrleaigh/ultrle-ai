@@ -299,38 +299,56 @@ export default function Upload() {
                 </div>
 
                 {/* Results */}
-                {result && (
-                    <div className="mt-8 flex flex-col gap-4">
-                        {result.split("\n").map((line, index) => {
-                            if (line.match(/^(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/)) {
-                                return (
-                                    <div key={index} className="mt-8 mb-2 flex items-center gap-3">
-                                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
-                                        <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: "#7c3aed" }}>
-                                            {line.trim()}
-                                        </span>
-                                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
-                                    </div>
-                                );
-                            }
-                            if (line.startsWith("###") || line.startsWith("##") || (line.startsWith("**") && line.endsWith("**"))) {
-                                return (
-                                    <h2 key={index} className="text-base font-semibold text-white mt-4">
-                                        {line.replace(/#{1,3}\s*/g, "").replace(/\*\*/g, "").trim()}
-                                    </h2>
-                                );
-                            }
-                            if (line.trim() === "") {
-                                return <div key={index} className="h-1" />;
-                            }
-                            return (
-                                <p key={index} className="text-sm leading-relaxed" style={{ color: "#9ca3af" }}>
-                                    {line.replace(/\*\*/g, "")}
-                                </p>
-                            );
-                        })}
+{result && (
+    <div className="mt-8 rounded-2xl p-6 flex flex-col gap-3" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
+        {result.split("\n").map((line, index) => {
+            const trimmed = line.trim();
+
+            if (
+                trimmed.match(/^(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/i) ||
+                trimmed.match(/^#+\s*(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/i) ||
+                trimmed.match(/^\*\*(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)\*\*$/i)
+            ) {
+                const label = trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "").trim();
+                return (
+                    <div key={index} className="mt-6 mb-2 flex items-center gap-3">
+                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
+                        <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: "#7c3aed" }}>
+                            {label}
+                        </span>
+                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
                     </div>
-                )}
+                );
+            }
+
+            if (trimmed.startsWith("###") || trimmed.startsWith("##") || trimmed.startsWith("#")) {
+                return (
+                    <h2 key={index} className="text-base font-semibold text-white mt-4">
+                        {trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "")}
+                    </h2>
+                );
+            }
+
+            if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
+                return (
+                    <h3 key={index} className="text-sm font-semibold text-white mt-3">
+                        {trimmed.replace(/\*\*/g, "")}
+                    </h3>
+                );
+            }
+
+            if (trimmed === "") {
+                return <div key={index} className="h-1" />;
+            }
+
+            return (
+                <p key={index} className="text-sm leading-relaxed" style={{ color: "#9ca3af" }}>
+                    {trimmed.replace(/\*\*/g, "")}
+                </p>
+            );
+        })}
+    </div>
+)}
 
             </div> 
         </main>
