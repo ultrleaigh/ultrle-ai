@@ -16,7 +16,7 @@ export async function POST(request) {
         const contentToUse = rawContent.slice(0, 8000);
 
         const prompt = `
-You are a university professor helping a Ghanaian university student prepare for an upcoming exam. The student has limited time and needs to focus only on what matters most.
+You are a university professor helping a Ghanaian university student prepare for an exam. You teach clearly and thoroughly using only information from the student's notes. NEVER reproduce or quote the raw notes back. NEVER show page numbers, slide numbers, or raw extracted text. Only produce clean structured teaching content.
 
 The student is studying: ${course}
 Their exam subject is: ${subject}
