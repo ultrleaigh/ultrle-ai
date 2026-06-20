@@ -22,17 +22,18 @@ export default function Navbar() {
 
     return (
         <nav className="w-full px-6 py-4 flex items-center justify-between" style={{ background: "#0a0a0f", borderBottom: "1px solid #1f1f2e" }}>
-            <a href="/" className="flex items-center">
-    <div style={{ height: "44px", borderRadius: "22px", background: "white", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "6px 16px" }}>
+            <a href="/" className="flex items-center gap-2">
+    <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "white", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         <Image
-            src="/uailogo.png"
+            src="/uai-icon.png"
             alt="Ultrle AI"
-            width={180}
-            height={40}
-            style={{ height: "100%", width: "auto", objectFit: "contain" }}
+            width={26}
+            height={26}
+            style={{ objectFit: "contain" }}
             priority
         />
     </div>
+    <span className="font-bold text-lg" style={{ color: "#a78bfa" }}>Ultrle AI</span>
 </a>
 
             <div className="flex items-center gap-5">
