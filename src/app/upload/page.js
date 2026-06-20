@@ -119,19 +119,7 @@ export default function Upload() {
             window.location.href = "/signup";
             return;
         }
-        if (profile && !profile.is_pro) {
-            const lastReset = new Date(profile.last_reset);
-            const now = new Date();
-            const hoursSinceReset = (now - lastReset) / (1000 * 60 * 60);
-            if (hoursSinceReset >= 24) {
-                await supabase.from("profiles").update({ daily_uses: 0, last_reset: new Date() }).eq("id", user.id);
-                setProfile({ ...profile, daily_uses: 0 });
-            } else if (profile.daily_uses >= 5) {
-                alert("You've used all 5 free generations for today. Come back tomorrow or upgrade to Pro for unlimited access.");
-                return;
-            }
-        }
-
+ 
         setLoading(true);
         setResult("");
 
@@ -172,12 +160,7 @@ export default function Upload() {
             const data = await response.json();
             if (data.error) throw new Error(data.error);
             setResult(data.result);
-
-            if (user && profile && !profile.is_pro) {
-                const newCount = (profile.daily_uses || 0) + 1;
-                await supabase.from("profiles").update({ daily_uses: newCount }).eq("id", user.id);
-                setProfile({ ...profile, daily_uses: newCount });
-            }
+ 
         } catch (error) {
             if (error.name === "AbortError") {
                 alert("This is taking too long. Please try again with shorter notes or a smaller file.");
@@ -199,20 +182,7 @@ export default function Upload() {
                     <h1 className="text-2xl font-bold text-white mb-1">Let's prepare you for your exam</h1>
                     <p className="text-sm" style={{ color: "#6b7280" }}>Fill in the details below and Ultrle AI will do the rest.</p>
                 </div>
-
-                {/* Usage counter */}
-                {profile && !profile.is_pro && (
-                    <div className="rounded-xl px-4 py-3 mb-6 text-center" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
-                        <p className="text-sm" style={{ color: "#9ca3af" }}>
-                            Free generations today:{" "}
-                            <span className="font-semibold text-white">{Math.max(0, 5 - (profile.daily_uses || 0))} / 5 remaining</span>
-                        </p>
-                        <a href="/pricing" className="text-xs mt-1 block" style={{ color: "#a78bfa" }}>
-                            Upgrade to Pro for unlimited access →
-                        </a>
-                    </div>
-                )}
-
+ 
                 {/* Form card */}
                 <div className="rounded-2xl p-6 flex flex-col gap-5" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
 
@@ -299,58 +269,58 @@ export default function Upload() {
                 </div>
 
                 {/* Results */}
-{result && (
-    <div className="mt-8 rounded-2xl p-6 flex flex-col gap-3" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
-        {result.split("\n").map((line, index) => {
-            const trimmed = line.trim();
+                {result && (
+                    <div className="mt-8 rounded-2xl p-6 flex flex-col gap-3" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
+                        {result.split("\n").map((line, index) => {
+                            const trimmed = line.trim();
 
-            if (
-                trimmed.match(/^(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/i) ||
-                trimmed.match(/^#+\s*(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/i) ||
-                trimmed.match(/^\*\*(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)\*\*$/i)
-            ) {
-                const label = trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "").trim();
-                return (
-                    <div key={index} className="mt-6 mb-2 flex items-center gap-3">
-                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
-                        <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: "#7c3aed" }}>
-                            {label}
-                        </span>
-                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
+                            if (
+                                trimmed.match(/^(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/i) ||
+                                trimmed.match(/^#+\s*(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/i) ||
+                                trimmed.match(/^\*\*(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)\*\*$/i)
+                            ) {
+                                const label = trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "").trim();
+                                return (
+                                    <div key={index} className="mt-6 mb-2 flex items-center gap-3">
+                                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
+                                        <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: "#7c3aed" }}>
+                                            {label}
+                                        </span>
+                                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
+                                    </div>
+                                );
+                            }
+
+                            if (trimmed.startsWith("###") || trimmed.startsWith("##") || trimmed.startsWith("#")) {
+                                return (
+                                    <h2 key={index} className="text-base font-semibold text-white mt-4">
+                                        {trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "")}
+                                    </h2>
+                                );
+                            }
+
+                            if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
+                                return (
+                                    <h3 key={index} className="text-sm font-semibold text-white mt-3">
+                                        {trimmed.replace(/\*\*/g, "")}
+                                    </h3>
+                                );
+                            }
+
+                            if (trimmed === "") {
+                                return <div key={index} className="h-1" />;
+                            }
+
+                            return (
+                                <p key={index} className="text-sm leading-relaxed" style={{ color: "#9ca3af" }}>
+                                    {trimmed.replace(/\*\*/g, "")}
+                                </p>
+                            );
+                        })}
                     </div>
-                );
-            }
+                )}
 
-            if (trimmed.startsWith("###") || trimmed.startsWith("##") || trimmed.startsWith("#")) {
-                return (
-                    <h2 key={index} className="text-base font-semibold text-white mt-4">
-                        {trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "")}
-                    </h2>
-                );
-            }
-
-            if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
-                return (
-                    <h3 key={index} className="text-sm font-semibold text-white mt-3">
-                        {trimmed.replace(/\*\*/g, "")}
-                    </h3>
-                );
-            }
-
-            if (trimmed === "") {
-                return <div key={index} className="h-1" />;
-            }
-
-            return (
-                <p key={index} className="text-sm leading-relaxed" style={{ color: "#9ca3af" }}>
-                    {trimmed.replace(/\*\*/g, "")}
-                </p>
-            );
-        })}
-    </div>
-)}
-
-            </div> 
+            </div>
         </main>
     );
 }
