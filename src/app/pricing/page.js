@@ -32,12 +32,30 @@ export default function Pricing() {
             amount: 30 * 100,
             currency: "GHS",
             onSuccess: async (transaction) => {
-                await supabase
-                    .from("profiles")
-                    .update({ is_pro: true })
-                    .eq("id", user.id);
-                window.location.href = "/upload?upgraded=true";
-            },
+    try {
+        const verifyResponse = await fetch("/api/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reference: transaction.reference }),
+        });
+
+        const verifyData = await verifyResponse.json();
+
+        if (verifyData.verified) {
+            await supabase
+                .from("profiles")
+                .update({ is_pro: true })
+                .eq("id", user.id);
+            window.location.href = "/upload?upgraded=true";
+        } else {
+            alert("Payment could not be verified. Please contact support if you were charged.");
+            setLoading(false);
+        }
+    } catch (error) {
+        alert("Something went wrong verifying your payment. Please contact support if you were charged.");
+        setLoading(false);
+    }
+},
             onCancel: () => {
                 setLoading(false);
             },
