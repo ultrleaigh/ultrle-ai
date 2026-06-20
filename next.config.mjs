@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ['groq-sdk'],
-  webpack: (config) => {
-    config.resolve.alias.canvas = false;
-    return config;
+  turbopack: {
+    resolveAlias: {
+      canvas: './empty-module.js',
+    },
   },
 };
 
