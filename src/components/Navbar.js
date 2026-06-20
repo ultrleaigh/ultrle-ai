@@ -23,17 +23,17 @@ export default function Navbar() {
     return (
         <nav className="w-full px-6 py-4 flex items-center justify-between" style={{ background: "#0a0a0f", borderBottom: "1px solid #1f1f2e" }}>
             <a href="/" className="flex items-center">
-                <div style={{ width: "180px", height: "40px", borderRadius: "20px", background: "white", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "4px 12px" }}>
-                    <Image
-                        src="/uailogo.png"
-                        alt="Ultrle AI"
-                        width={160}
-                        height={32}
-                        style={{ height: "100%", width: "auto", objectFit: "contain" }}
-                        priority
-                    />
-                </div>
-            </a>
+    <div style={{ height: "44px", borderRadius: "22px", background: "white", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "6px 16px" }}>
+        <Image
+            src="/uailogo.png"
+            alt="Ultrle AI"
+            width={180}
+            height={40}
+            style={{ height: "100%", width: "auto", objectFit: "contain" }}
+            priority
+        />
+    </div>
+</a>
 
             <div className="flex items-center gap-5">
                 {user ? (
