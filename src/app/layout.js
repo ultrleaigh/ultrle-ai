@@ -8,7 +8,7 @@ const geistSans = Geist({
 }); 
 
 export const metadata = {
-  title: "Ultrle AI — Exam Preparation for Ghanaian Students",
+  title: "Ultrle AI",
   description: "Upload your lecture slides and get a personalised study plan, summaries, and practice questions in minutes.",
 };
 
