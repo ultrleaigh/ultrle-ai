@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
@@ -21,8 +22,15 @@ export default function Navbar() {
 
     return (
         <nav className="w-full px-6 py-4 flex items-center justify-between" style={{ background: "#0a0a0f", borderBottom: "1px solid #1f1f2e" }}>
-            <a href="/" className="font-bold text-lg" style={{ color: "#a78bfa" }}>
-                Ultrle AI
+            <a href="/" className="flex items-center">
+                <Image
+                    src="/uailogo.png"
+                    alt="Ultrle AI"
+                    width={140}
+                    height={32}
+                    style={{ height: "28px", width: "auto" }}
+                    priority
+                />
             </a>
 
             <div className="flex items-center gap-5">
@@ -44,7 +52,7 @@ export default function Navbar() {
                         <a href="/login" className="text-sm" style={{ color: "#9ca3af" }}>
                             Log in
                         </a>
-                        
+
                         <a href="/signup"
                             className="text-sm font-semibold px-4 py-2 rounded-full"
                             style={{ background: "#7c3aed", color: "white" }}
