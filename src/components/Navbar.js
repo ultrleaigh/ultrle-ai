@@ -20,33 +20,35 @@ export default function Navbar() {
     };
 
     return (
-        <nav className="w-full bg-black border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-            <a href="/" className="text-white font-bold text-xl">
+        <nav className="w-full px-6 py-4 flex items-center justify-between" style={{ background: "#0a0a0f", borderBottom: "1px solid #1f1f2e" }}>
+            <a href="/" className="font-bold text-lg" style={{ color: "#a78bfa" }}>
                 Ultrle AI
             </a>
 
-            <div className="flex items-center gap-4">
-                <a href="/pricing" className="text-gray-400 text-sm hover:text-white">
-                    Pricing
-                </a>
+            <div className="flex items-center gap-5">
                 {user ? (
                     <>
-                        <a href="/upload" className="text-gray-400 text-sm hover:text-white">
+                        <a href="/upload" className="text-sm" style={{ color: "#9ca3af" }}>
                             Study
                         </a>
                         <button
                             onClick={handleLogout}
-                            className="text-sm text-gray-400 hover:text-white"
+                            className="text-sm"
+                            style={{ color: "#9ca3af" }}
                         >
                             Log out
                         </button>
                     </>
                 ) : (
                     <>
-                        <a href="/login" className="text-gray-400 text-sm hover:text-white">
+                        <a href="/login" className="text-sm" style={{ color: "#9ca3af" }}>
                             Log in
                         </a>
-                        <a href="/signup" className="bg-white text-black text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-200">
+                        
+                        <a href="/signup"
+                            className="text-sm font-semibold px-4 py-2 rounded-full"
+                            style={{ background: "#7c3aed", color: "white" }}
+                        >
                             Sign up
                         </a>
                     </>
