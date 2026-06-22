@@ -60,6 +60,7 @@ export default function Upload() {
     const [profile, setProfile] = useState(null);
     const [stepIndex, setStepIndex] = useState(0);
     const [teachingIndex, setTeachingIndex] = useState(0);
+    const [mcqAnswers, setMcqAnswers] = useState({});
 
     useEffect(() => {
         const getUser = async () => {
@@ -360,18 +361,60 @@ export default function Upload() {
                             {currentStep === "test" && (
                                 <div className="flex flex-col gap-6">
                                     <div>
-                                        <h3 className="font-semibold text-white mb-3">Multiple choice questions</h3>
-                                        {result.mcqs.map((q, i) => (
-                                            <div key={i} className="mb-4 pb-4" style={{ borderBottom: "1px solid #1f1f2e" }}>
-                                                <p className="text-sm font-medium text-white mb-2">{i + 1}. {q.question}</p>
-                                                {Object.entries(q.options).map(([key, val]) => (
-                                                    <p key={key} className="text-sm mb-1" style={{ color: key === q.answer ? "#a78bfa" : "#9ca3af" }}>
-                                                        {key}) {val} {key === q.answer && "✓"}
-                                                    </p>
-                                                ))}
-                                            </div>
-                                        ))}
-                                    </div>
+    <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-white">Multiple choice questions</h3>
+        {Object.keys(mcqAnswers).length === result.mcqs.length && (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: "#1e1530", color: "#a78bfa" }}>
+                Score: {result.mcqs.filter((q, i) => mcqAnswers[i] === q.answer).length} / {result.mcqs.length}
+            </span>
+        )}
+    </div>
+    {result.mcqs.map((q, i) => {
+        const selected = mcqAnswers[i];
+        return (
+            <div key={i} className="mb-5 pb-5" style={{ borderBottom: "1px solid #1f1f2e" }}>
+                <p className="text-sm font-medium text-white mb-3">{i + 1}. {q.question}</p>
+                <div className="flex flex-col gap-2">
+                    {Object.entries(q.options).map(([key, val]) => {
+                        let bg = "#1a1a2e";
+                        let border = "#2d2d3d";
+                        let textColor = "#9ca3af";
+
+                        if (selected) {
+                            if (key === q.answer) {
+                                bg = "#16331f";
+                                border = "#22c55e";
+                                textColor = "#4ade80";
+                            } else if (key === selected && key !== q.answer) {
+                                bg = "#331616";
+                                border = "#ef4444";
+                                textColor = "#f87171";
+                            }
+                        }
+
+                        return (
+                            <button
+                                key={key}
+                                onClick={() => {
+                                    if (!selected) {
+                                        setMcqAnswers({ ...mcqAnswers, [i]: key });
+                                    }
+                                }}
+                                disabled={!!selected}
+                                className="text-left text-sm px-4 py-2.5 rounded-lg transition-all"
+                                style={{ background: bg, border: `1px solid ${border}`, color: textColor, cursor: selected ? "default" : "pointer" }}
+                            >
+                                {key}) {val}
+                                {selected && key === q.answer && "  ✓"}
+                                {selected && key === selected && key !== q.answer && "  ✗"}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    })}
+</div>
                                     <div>
                                         <h3 className="font-semibold text-white mb-3">Essay questions</h3>
                                         {result.essays.map((e, i) => (
