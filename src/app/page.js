@@ -1,23 +1,9 @@
-import Image from "next/image";
-
-export default function Home() {
+export default function Home() { 
   return (
     <main className="min-h-screen flex flex-col" style={{ background: "#0a0a0f", color: "white" }}>
 
       {/* Hero section */}
       <div className="flex flex-col items-center justify-center flex-1 px-4 py-24 text-center">
-
-        {/* Logo */}
-        <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "white", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", marginBottom: "24px" }}>
-          <Image
-            src="/uai-icon.png"
-            alt="Ultrle AI"
-            width={48}
-            height={48}
-            style={{ objectFit: "contain" }}
-            priority
-          />
-        </div>
 
         {/* Badge */}
         <div className="mb-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: "#1e1530", color: "#a78bfa", border: "1px solid #3b1f6e" }}>
