@@ -40,7 +40,6 @@ export default function Login() {
 
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <a href="/" className="text-xl font-bold" style={{ color: "#a78bfa" }}>Ultrle AI</a>
                     <h1 className="text-2xl font-bold text-white mt-4 mb-1">Welcome back</h1>
                     <p className="text-sm" style={{ color: "#6b7280" }}>Log in to continue preparing for your exam.</p>
                 </div>

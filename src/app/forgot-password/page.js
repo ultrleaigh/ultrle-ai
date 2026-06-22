@@ -37,8 +37,7 @@ export default function ForgotPassword() {
 
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <a href="/" className="text-xl font-bold" style={{ color: "#a78bfa" }}>Ultrle AI</a>
-                    <h1 className="text-2xl font-bold text-white mt-4 mb-1">Forgot your password?</h1>
+                    <h1 className="text-2xl font-bold text-white mb-1">Forgot your password?</h1>
                     <p className="text-sm" style={{ color: "#6b7280" }}>Enter your email and we'll send you a reset link.</p>
                 </div>
 

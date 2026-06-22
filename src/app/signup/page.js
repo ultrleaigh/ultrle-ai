@@ -50,7 +50,6 @@ export default function SignUp() {
 
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <a href="/" className="text-xl font-bold" style={{ color: "#a78bfa" }}>Ultrle AI</a>
                     <h1 className="text-2xl font-bold text-white mt-4 mb-1">Create your account</h1>
                     <p className="text-sm" style={{ color: "#6b7280" }}>Join Ghanaian students preparing smarter.</p>
                 </div>
