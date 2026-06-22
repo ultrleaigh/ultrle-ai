@@ -42,31 +42,30 @@ export default function ResetPassword() {
     };
 
     return (
-        <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4">
+        <main className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#0a0a0f" }}>
             <div className="w-full max-w-sm">
-                <h1 className="text-3xl font-bold text-center mb-2">
-                    Reset your password
-                </h1>
-                <p className="text-gray-400 text-center mb-8">
-                    Enter your new password below.
-                </p>
 
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold text-gray-300">
-                            New password
-                        </label>
+                <div className="text-center mb-8">
+                    <h1 className="text-2xl font-bold text-white mb-1">Reset your password</h1>
+                    <p className="text-sm" style={{ color: "#6b7280" }}>Enter your new password below.</p>
+                </div>
+
+                <div className="rounded-2xl p-6 flex flex-col gap-4" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
+
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold" style={{ color: "#9ca3af" }}>New password</label>
                         <input
                             type="password"
                             placeholder="At least 6 characters"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white"
+                            onKeyDown={(e) => e.key === "Enter" && handleReset()}
+                            style={{ background: "#1a1a2e", border: "1px solid #2d2d3d", color: "white", borderRadius: "10px", padding: "12px 16px", fontSize: "14px", outline: "none" }}
                         />
                     </div>
 
                     {message && (
-                        <p className="text-sm text-center text-yellow-400">
+                        <p className="text-xs text-center" style={{ color: message.includes("success") ? "#4ade80" : "#f87171" }}>
                             {message}
                         </p>
                     )}
@@ -74,7 +73,8 @@ export default function ResetPassword() {
                     <button
                         onClick={handleReset}
                         disabled={loading}
-                        className="bg-white text-black font-semibold py-3 rounded-full hover:bg-gray-200 disabled:opacity-50"
+                        className="font-semibold py-3 rounded-full transition-all disabled:opacity-50"
+                        style={{ background: "#7c3aed", color: "white", fontSize: "14px" }}
                     >
                         {loading ? "Updating..." : "Update Password"}
                     </button>
