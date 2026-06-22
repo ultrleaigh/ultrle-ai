@@ -38,18 +38,28 @@ const labelStyle = {
     display: "block",
 };
 
+const STEPS = ["topics", "teaching", "summary", "test"];
+const STEP_LABELS = {
+    topics: "What to focus on",
+    teaching: "Understanding each topic",
+    summary: "Quick revision",
+    test: "Check your understanding",
+};
+
 export default function Upload() {
     const [subject, setSubject] = useState("");
     const [course, setCourse] = useState("");
     const [time, setTime] = useState("30 mins");
     const [notes, setNotes] = useState("");
     const [file, setFile] = useState(null);
-    const [result, setResult] = useState("");
+    const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("");
     const [checking, setChecking] = useState(true);
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
+    const [stepIndex, setStepIndex] = useState(0);
+    const [teachingIndex, setTeachingIndex] = useState(0);
 
     useEffect(() => {
         const getUser = async () => {
@@ -119,9 +129,11 @@ export default function Upload() {
             window.location.href = "/signup";
             return;
         }
- 
+
         setLoading(true);
-        setResult("");
+        setResult(null);
+        setStepIndex(0);
+        setTeachingIndex(0);
 
         try {
             let contentToSend = notes;
@@ -160,7 +172,7 @@ export default function Upload() {
             const data = await response.json();
             if (data.error) throw new Error(data.error);
             setResult(data.result);
- 
+
         } catch (error) {
             if (error.name === "AbortError") {
                 alert("This is taking too long. Please try again with shorter notes or a smaller file.");
@@ -173,150 +185,236 @@ export default function Upload() {
         }
     };
 
+    const currentStep = STEPS[stepIndex];
+
+    const goNext = () => {
+        if (currentStep === "teaching" && result && teachingIndex < result.teaching.length - 1) {
+            setTeachingIndex(teachingIndex + 1);
+            return;
+        }
+        if (stepIndex < STEPS.length - 1) {
+            setStepIndex(stepIndex + 1);
+            setTeachingIndex(0);
+        }
+    };
+
+    const goBack = () => {
+        if (currentStep === "teaching" && teachingIndex > 0) {
+            setTeachingIndex(teachingIndex - 1);
+            return;
+        }
+        if (stepIndex > 0) {
+            setStepIndex(stepIndex - 1);
+            if (STEPS[stepIndex - 1] === "teaching" && result) {
+                setTeachingIndex(result.teaching.length - 1);
+            }
+        }
+    };
+
+    const isLastSubStep = () => {
+        if (currentStep === "teaching" && result) {
+            return teachingIndex === result.teaching.length - 1;
+        }
+        return true;
+    };
+
+    const isVeryLastStep = stepIndex === STEPS.length - 1 && isLastSubStep();
+
     return (
         <main className="min-h-screen px-4 py-12" style={{ background: "#0a0a0f" }}>
             <div className="w-full max-w-xl lg:max-w-2xl mx-auto">
 
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-white mb-1">Let's prepare you for your exam</h1>
-                    <p className="text-sm" style={{ color: "#6b7280" }}>Fill in the details below and Ultrle AI will do the rest.</p>
-                </div>
- 
-                {/* Form card */}
-                <div className="rounded-2xl p-6 flex flex-col gap-5" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
+                {!result && (
+                    <>
+                        <div className="text-center mb-8">
+                            <h1 className="text-2xl font-bold text-white mb-1">Let's prepare you for your exam</h1>
+                            <p className="text-sm" style={{ color: "#6b7280" }}>Fill in the details below and Ultrle AI will do the rest.</p>
+                        </div>
 
-                    <div className="flex flex-col gap-1">
-                        <label style={labelStyle}>What programme do you offer?</label>
-                        <select
-                            value={course}
-                            onChange={(e) => setCourse(e.target.value)}
-                            style={inputStyle}
-                        >
-                            <option value="">Select your programme</option>
-                            {COURSES.map((c) => (
-                                <option key={c} value={c}>{c}</option>
+                        <div className="rounded-2xl p-6 flex flex-col gap-5" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
+
+                            <div className="flex flex-col gap-1">
+                                <label style={labelStyle}>What programme do you offer?</label>
+                                <select value={course} onChange={(e) => setCourse(e.target.value)} style={inputStyle}>
+                                    <option value="">Select your programme</option>
+                                    {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                                <label style={labelStyle}>What subject is your exam on?</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Organic Chemistry, Microeconomics"
+                                    value={subject}
+                                    onChange={(e) => setSubject(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                                    style={inputStyle}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                                <label style={labelStyle}>How much time do you have?</label>
+                                <select value={time} onChange={(e) => setTime(e.target.value)} style={inputStyle}>
+                                    <option>30 mins</option>
+                                    <option>1 hour</option>
+                                    <option>2 hours</option>
+                                    <option>5 hours</option>
+                                    <option>1 day</option>
+                                    <option>2 days</option>
+                                    <option>3 days</option>
+                                    <option>1 week</option>
+                                </select>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                                <label style={labelStyle}>Upload your lecture slides</label>
+                                <div
+                                    onClick={() => document.getElementById("fileInput").click()}
+                                    className="flex flex-col items-center justify-center cursor-pointer rounded-xl py-8 transition-all"
+                                    style={{ border: "1.5px dashed #2d2d3d", background: "#1a1a2e" }}
+                                >
+                                    <p className="text-sm" style={{ color: "#6b7280" }}>Click to upload a PDF</p>
+                                    <p className="text-xs mt-1" style={{ color: "#374151" }}>Max 10MB</p>
+                                    {file && <p className="text-xs mt-3 font-semibold" style={{ color: "#a78bfa" }}>✓ {file.name}</p>}
+                                </div>
+                                <input id="fileInput" type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                                <label style={labelStyle}>Or paste your notes here</label>
+                                <textarea
+                                    placeholder="Paste your lecture notes here..."
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                    rows={6}
+                                    style={{ ...inputStyle, resize: "none", lineHeight: "1.6" }}
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleGenerate}
+                                disabled={loading}
+                                className="font-semibold py-3 rounded-full transition-all disabled:opacity-50"
+                                style={{ background: "#7c3aed", color: "white", fontSize: "15px" }}
+                            >
+                                {loading ? loadingMessage || "Generating..." : "Generate My Study Plan"}
+                            </button>
+                        </div>
+                    </>
+                )}
+  
+                {result && (
+                    <div>
+                        {/* Progress indicator */}
+                        <div className="flex items-center justify-center gap-2 mb-6">
+                            {STEPS.map((step, i) => (
+                                <div
+                                    key={step}
+                                    style={{
+                                        height: "4px",
+                                        flex: 1,
+                                        maxWidth: "60px",
+                                        borderRadius: "2px",
+                                        background: i <= stepIndex ? "#7c3aed" : "#1f1f2e",
+                                    }}
+                                />
                             ))}
-                        </select>
-                    </div>
+                        </div>
 
-                    <div className="flex flex-col gap-1">
-                        <label style={labelStyle}>What subject is your exam on?</label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Organic Chemistry, Microeconomics"
-                            value={subject}
-                            onChange={(e) => setSubject(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                            style={inputStyle}
-                        />
-                    </div>
+                        <p className="text-center text-xs font-semibold tracking-widest uppercase mb-6" style={{ color: "#7c3aed" }}>
+                            {STEP_LABELS[currentStep]}
+                            {currentStep === "teaching" && ` — ${teachingIndex + 1} of ${result.teaching.length}`}
+                        </p>
 
-                    <div className="flex flex-col gap-1">
-                        <label style={labelStyle}>How much time do you have?</label>
-                        <select
-                            value={time}
-                            onChange={(e) => setTime(e.target.value)}
-                            style={inputStyle}
-                        >
-                            <option>30 mins</option>
-                            <option>1 hour</option>
-                            <option>2 hours</option>
-                            <option>5 hours</option>
-                            <option>1 day</option>
-                            <option>2 days</option>
-                            <option>3 days</option>
-                            <option>1 week</option>
-                        </select>
-                    </div>
+                        <div className="rounded-2xl p-6 flex flex-col gap-4" style={{ background: "#12101a", border: "1px solid #1f1f2e", minHeight: "300px" }}>
 
-                    <div className="flex flex-col gap-1">
-                        <label style={labelStyle}>Upload your lecture slides</label>
-                        <div
-                            onClick={() => document.getElementById("fileInput").click()}
-                            className="flex flex-col items-center justify-center cursor-pointer rounded-xl py-8 transition-all"
-                            style={{ border: "1.5px dashed #2d2d3d", background: "#1a1a2e" }}
-                        >
-                            <p className="text-sm" style={{ color: "#6b7280" }}>Click to upload a PDF</p>
-                            <p className="text-xs mt-1" style={{ color: "#374151" }}>Max 10MB</p>
-                            {file && (
-                                <p className="text-xs mt-3 font-semibold" style={{ color: "#a78bfa" }}>✓ {file.name}</p>
+                            {currentStep === "topics" && (
+                                <div className="flex flex-col gap-4">
+                                    {result.topics.map((t, i) => (
+                                        <div key={i} className="pb-4" style={{ borderBottom: i < result.topics.length - 1 ? "1px solid #1f1f2e" : "none" }}>
+                                            <h3 className="font-semibold text-white mb-1">{i + 1}. {t.name}</h3>
+                                            <p className="text-sm" style={{ color: "#9ca3af" }}>{t.reason}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {currentStep === "teaching" && result.teaching[teachingIndex] && (
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white mb-3">{result.teaching[teachingIndex].topic}</h3>
+                                    {result.teaching[teachingIndex].explanation.split("\n\n").map((para, i) => (
+                                        <p key={i} className="text-sm leading-relaxed mb-3" style={{ color: "#9ca3af" }}>{para}</p>
+                                    ))}
+                                </div>
+                            )}
+
+                            {currentStep === "summary" && (
+                                <div>
+                                    {result.summary.split("\n\n").map((para, i) => (
+                                        <p key={i} className="text-sm leading-relaxed mb-3" style={{ color: "#9ca3af" }}>{para}</p>
+                                    ))}
+                                </div>
+                            )}
+
+                            {currentStep === "test" && (
+                                <div className="flex flex-col gap-6">
+                                    <div>
+                                        <h3 className="font-semibold text-white mb-3">Multiple choice questions</h3>
+                                        {result.mcqs.map((q, i) => (
+                                            <div key={i} className="mb-4 pb-4" style={{ borderBottom: "1px solid #1f1f2e" }}>
+                                                <p className="text-sm font-medium text-white mb-2">{i + 1}. {q.question}</p>
+                                                {Object.entries(q.options).map(([key, val]) => (
+                                                    <p key={key} className="text-sm mb-1" style={{ color: key === q.answer ? "#a78bfa" : "#9ca3af" }}>
+                                                        {key}) {val} {key === q.answer && "✓"}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-white mb-3">Essay questions</h3>
+                                        {result.essays.map((e, i) => (
+                                            <div key={i} className="mb-4 pb-4" style={{ borderBottom: i < result.essays.length - 1 ? "1px solid #1f1f2e" : "none" }}>
+                                                <p className="text-sm font-medium text-white mb-2">{i + 1}. {e.question}</p>
+                                                <p className="text-sm" style={{ color: "#9ca3af" }}>{e.modelAnswer}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+
+                        {/* Navigation buttons */}
+                        <div className="flex items-center justify-between mt-6">
+                            <button
+                                onClick={goBack}
+                                disabled={stepIndex === 0 && teachingIndex === 0}
+                                className="font-semibold px-6 py-2.5 rounded-full transition-all disabled:opacity-30"
+                                style={{ background: "#1a1a2e", color: "#a78bfa", border: "1px solid #3b1f6e", fontSize: "14px" }}
+                            >
+                                Back
+                            </button>
+
+                            {!isVeryLastStep ? (
+                                <button
+                                    onClick={goNext}
+                                    className="font-semibold px-6 py-2.5 rounded-full transition-all"
+                                    style={{ background: "#7c3aed", color: "white", fontSize: "14px" }}
+                                >
+                                    Next
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setResult(null)}
+                                    className="font-semibold px-6 py-2.5 rounded-full transition-all"
+                                    style={{ background: "#7c3aed", color: "white", fontSize: "14px" }}
+                                >
+                                    Start over
+                                </button>
                             )}
                         </div>
-                        <input id="fileInput" type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                        <label style={labelStyle}>Or paste your notes here</label>
-                        <textarea
-                            placeholder="Paste your lecture notes here..."
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            rows={6}
-                            style={{ ...inputStyle, resize: "none", lineHeight: "1.6" }}
-                        />
-                    </div>
-
-                    <button
-                        onClick={handleGenerate}
-                        disabled={loading}
-                        className="font-semibold py-3 rounded-full transition-all disabled:opacity-50"
-                        style={{ background: "#7c3aed", color: "white", fontSize: "15px" }}
-                    >
-                        {loading ? loadingMessage || "Generating..." : "Generate My Study Plan"}
-                    </button>
-
-                </div>
-
-                {/* Results */}
-                {result && (
-                    <div className="mt-8 rounded-2xl p-6 flex flex-col gap-3" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
-                        {result.split("\n").map((line, index) => {
-                            const trimmed = line.trim();
-
-                            if (
-                                trimmed.match(/^(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/i) ||
-                                trimmed.match(/^#+\s*(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)/i) ||
-                                trimmed.match(/^\*\*(WHAT TO FOCUS ON|UNDERSTANDING EACH TOPIC|QUICK REVISION|CHECK YOUR UNDERSTANDING)\*\*$/i)
-                            ) {
-                                const label = trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "").trim();
-                                return (
-                                    <div key={index} className="mt-6 mb-2 flex items-center gap-3">
-                                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
-                                        <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: "#7c3aed" }}>
-                                            {label}
-                                        </span>
-                                        <div className="h-px flex-1" style={{ background: "#1f1f2e" }} />
-                                    </div>
-                                );
-                            }
-
-                            if (trimmed.startsWith("###") || trimmed.startsWith("##") || trimmed.startsWith("#")) {
-                                return (
-                                    <h2 key={index} className="text-base font-semibold text-white mt-4">
-                                        {trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "")}
-                                    </h2>
-                                );
-                            }
-
-                            if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
-                                return (
-                                    <h3 key={index} className="text-sm font-semibold text-white mt-3">
-                                        {trimmed.replace(/\*\*/g, "")}
-                                    </h3>
-                                );
-                            }
-
-                            if (trimmed === "") {
-                                return <div key={index} className="h-1" />;
-                            }
-
-                            return (
-                                <p key={index} className="text-sm leading-relaxed" style={{ color: "#9ca3af" }}>
-                                    {trimmed.replace(/\*\*/g, "")}
-                                </p>
-                            );
-                        })}
                     </div>
                 )}
 
