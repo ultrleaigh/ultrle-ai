@@ -74,12 +74,13 @@ Requirements:
         }
 
         let parsed;
-        try {
-            parsed = JSON.parse(text);
-        } catch (parseError) {
-            console.error("JSON parse failed:", parseError.message);
-            return Response.json({ error: "The AI returned an invalid format. Please try again." }, { status: 500 });
-        }
+try {
+    parsed = JSON.parse(text);
+} catch (parseError) {
+    console.error("JSON parse failed:", parseError.message);
+    console.error("Raw AI response was:", text);
+    return Response.json({ error: "The AI returned an invalid format. Please try again with a shorter file." }, { status: 500 });
+}
 
         return Response.json({ result: parsed });
 
