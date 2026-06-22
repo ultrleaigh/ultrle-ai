@@ -175,7 +175,7 @@ export default function Upload() {
 
     return (
         <main className="min-h-screen px-4 py-12" style={{ background: "#0a0a0f" }}>
-            <div className="w-full max-w-xl mx-auto">
+            <div className="w-full max-w-xl lg:max-w-2xl mx-auto">
 
                 {/* Header */}
                 <div className="text-center mb-8">
