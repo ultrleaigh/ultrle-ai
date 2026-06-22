@@ -16,7 +16,7 @@ export async function POST(request) {
         const contentToUse = rawContent.slice(0, 8000);
 
         const prompt = `
-You are a university professor helping a Ghanaian university student prepare for an exam. You teach clearly and thoroughly using only information from the student's notes. NEVER reproduce or quote the raw notes back. NEVER show page numbers, slide numbers, or raw extracted text. Only produce clean structured teaching content.
+You are a university professor helping a Ghanaian university student prepare for an exam. You teach clearly and thoroughly using only information from the student's notes. NEVER reproduce or quote the raw notes back. NEVER show page numbers, slide numbers, or raw extracted text.
 
 The student is studying: ${course}
 Their exam subject is: ${subject}
@@ -25,48 +25,46 @@ They have: ${time} before their exam
 Here are their lecture notes and slides:
 ${contentToUse}
 
-Using ONLY the content from the notes above, do the following:
+Using ONLY the content from the notes above, respond with VALID JSON ONLY — no markdown, no preamble, no code fences. The JSON must follow this exact structure:
 
----
+{
+  "topics": [
+    { "name": "Topic name", "reason": "One sentence on why this topic matters for the exam" }
+  ],
+  "teaching": [
+    { "topic": "Topic name", "explanation": "Full detailed professor-style explanation of this topic, written as multiple paragraphs of plain text separated by \\n\\n" }
+  ],
+  "summary": "A concise revision summary covering everything taught, written as plain text with \\n\\n between points",
+  "mcqs": [
+    { "question": "Question text", "options": { "A": "...", "B": "...", "C": "...", "D": "..." }, "answer": "A" }
+  ],
+  "essays": [
+    { "question": "Essay question text", "modelAnswer": "Detailed model answer" }
+  ]
+}
 
-WHAT TO FOCUS ON
-List the most important topics from the notes that are most likely to appear in the exam. For each topic, write one sentence explaining why it is important.
-
----
-
-UNDERSTANDING EACH TOPIC
-For every topic you listed above, teach it in full detail as a university professor would explain it to a student. Break it down step by step. Use simple, clear language. Use examples where helpful. Only use information from the provided notes — do not add outside knowledge.
-
----
-
-QUICK REVISION
-Write a concise summary of everything taught in Step 2. This should serve as a quick revision sheet the student can read right before their exam.
-
----
-
-CHECK YOUR UNDERSTANDING
-Create the following questions based strictly on the notes:
-
-a) 10 multiple choice questions with 4 options each (A, B, C, D) and indicate the correct answer for each.
-
-b) 3 essay questions with detailed model answers based on the notes.
-
----
-
-Be encouraging, clear, and thorough. Speak directly to the student. Only use information from their notes.
+Requirements:
+- "topics" should have however many distinct key topics exist in the notes
+- "teaching" must have one entry per topic listed in "topics", in the same order
+- "mcqs" must contain exactly 10 questions
+- "essays" must contain exactly 3 questions
+- Only use information from the provided notes — do not add outside knowledge
+- Be encouraging and clear in tone within the explanation and summary text
+- Return ONLY the JSON object, nothing else before or after it
 `;
 
         const completion = await groq.chat.completions.create({
             messages: [
                 {
                     role: "system",
-                    content: "You are a university professor helping a Ghanaian university student prepare for an exam. You teach clearly, explain thoroughly, and only use information from the student's provided notes — never add outside knowledge.",
+                    content: "You are a university professor helping a Ghanaian university student prepare for an exam. You always respond with valid JSON only, following the exact structure requested. You teach clearly and only use information from the student's provided notes — never add outside knowledge.",
                 },
                 { role: "user", content: prompt },
             ],
             model: "llama-3.3-70b-versatile",
-            max_tokens: 4096,
+            max_tokens: 8000,
             temperature: 0.7,
+            response_format: { type: "json_object" },
         });
 
         const text = completion.choices[0]?.message?.content;
@@ -75,7 +73,15 @@ Be encouraging, clear, and thorough. Speak directly to the student. Only use inf
             return Response.json({ error: "No response from model." }, { status: 500 });
         }
 
-        return Response.json({ result: text });
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (parseError) {
+            console.error("JSON parse failed:", parseError.message);
+            return Response.json({ error: "The AI returned an invalid format. Please try again." }, { status: 500 });
+        }
+
+        return Response.json({ result: parsed });
 
     } catch (error) {
         console.error("Error:", error.message);
