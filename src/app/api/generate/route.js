@@ -13,7 +13,7 @@ export async function POST(request) {
         const notes = formData.get("notes");
 
         const rawContent = notes || "No notes provided.";
-        const contentToUse = rawContent.slice(0, 8000);
+        const contentToUse = rawContent.slice(0, 5000);
 
         const prompt = `
 You are a university professor helping a Ghanaian university student prepare for an exam. You teach clearly and thoroughly using only information from the student's notes. NEVER reproduce or quote the raw notes back. NEVER show page numbers, slide numbers, or raw extracted text.
