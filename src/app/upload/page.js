@@ -61,6 +61,9 @@ export default function Upload() {
     const [stepIndex, setStepIndex] = useState(0);
     const [teachingIndex, setTeachingIndex] = useState(0);
     const [mcqAnswers, setMcqAnswers] = useState({});
+    const [essayAnswers, setEssayAnswers] = useState({});
+    const [essayFeedback, setEssayFeedback] = useState({});
+    const [markingIndex, setMarkingIndex] = useState(null);
 
     useEffect(() => {
         const getUser = async () => {
@@ -135,6 +138,9 @@ export default function Upload() {
         setResult(null);
         setStepIndex(0);
         setTeachingIndex(0);
+        setMcqAnswers({});
+        setEssayAnswers({});
+        setEssayFeedback({});
 
         try {
             let contentToSend = notes;
@@ -160,7 +166,7 @@ export default function Upload() {
             formData.append("subject", subject);
             formData.append("course", course);
             formData.append("time", time);
-            formData.append("notes", contentToSend.slice(0, 8000));
+            formData.append("notes", contentToSend.slice(0, 5000));
 
             const response = await fetch("/api/generate", {
                 method: "POST",
@@ -183,6 +189,39 @@ export default function Upload() {
         } finally {
             setLoading(false);
             setLoadingMessage("");
+        }
+    };
+
+    const handleMarkEssay = async (index, question, modelAnswer) => {
+        const studentAnswer = essayAnswers[index];
+        if (!studentAnswer || studentAnswer.trim().length < 10) {
+            alert("Please write a more complete answer before submitting.");
+            return;
+        }
+
+        setMarkingIndex(index);
+
+        try {
+            const response = await fetch("/api/mark-essay", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question, studentAnswer, modelAnswer }),
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+                setMarkingIndex(null);
+                return;
+            }
+
+            setEssayFeedback({ ...essayFeedback, [index]: data.result });
+
+        } catch (error) {
+            alert("Something went wrong marking your answer. Please try again.");
+        } finally {
+            setMarkingIndex(null);
         }
     };
 
@@ -304,7 +343,7 @@ export default function Upload() {
                         </div>
                     </>
                 )}
-  
+
                 {result && (
                     <div>
                         {/* Progress indicator */}
@@ -361,68 +400,109 @@ export default function Upload() {
                             {currentStep === "test" && (
                                 <div className="flex flex-col gap-6">
                                     <div>
-    <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-white">Multiple choice questions</h3>
-        {Object.keys(mcqAnswers).length === result.mcqs.length && (
-            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: "#1e1530", color: "#a78bfa" }}>
-                Score: {result.mcqs.filter((q, i) => mcqAnswers[i] === q.answer).length} / {result.mcqs.length}
-            </span>
-        )}
-    </div>
-    {result.mcqs.map((q, i) => {
-        const selected = mcqAnswers[i];
-        return (
-            <div key={i} className="mb-5 pb-5" style={{ borderBottom: "1px solid #1f1f2e" }}>
-                <p className="text-sm font-medium text-white mb-3">{i + 1}. {q.question}</p>
-                <div className="flex flex-col gap-2">
-                    {Object.entries(q.options).map(([key, val]) => {
-                        let bg = "#1a1a2e";
-                        let border = "#2d2d3d";
-                        let textColor = "#9ca3af";
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="font-semibold text-white">Multiple choice questions</h3>
+                                            {Object.keys(mcqAnswers).length === result.mcqs.length && (
+                                                <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: "#1e1530", color: "#a78bfa" }}>
+                                                    Score: {result.mcqs.filter((q, i) => mcqAnswers[i] === q.answer).length} / {result.mcqs.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {result.mcqs.map((q, i) => {
+                                            const selected = mcqAnswers[i];
+                                            return (
+                                                <div key={i} className="mb-5 pb-5" style={{ borderBottom: "1px solid #1f1f2e" }}>
+                                                    <p className="text-sm font-medium text-white mb-3">{i + 1}. {q.question}</p>
+                                                    <div className="flex flex-col gap-2">
+                                                        {Object.entries(q.options).map(([key, val]) => {
+                                                            let bg = "#1a1a2e";
+                                                            let border = "#2d2d3d";
+                                                            let textColor = "#9ca3af";
 
-                        if (selected) {
-                            if (key === q.answer) {
-                                bg = "#16331f";
-                                border = "#22c55e";
-                                textColor = "#4ade80";
-                            } else if (key === selected && key !== q.answer) {
-                                bg = "#331616";
-                                border = "#ef4444";
-                                textColor = "#f87171";
-                            }
-                        }
+                                                            if (selected) {
+                                                                if (key === q.answer) {
+                                                                    bg = "#16331f";
+                                                                    border = "#22c55e";
+                                                                    textColor = "#4ade80";
+                                                                } else if (key === selected && key !== q.answer) {
+                                                                    bg = "#331616";
+                                                                    border = "#ef4444";
+                                                                    textColor = "#f87171";
+                                                                }
+                                                            }
 
-                        return (
-                            <button
-                                key={key}
-                                onClick={() => {
-                                    if (!selected) {
-                                        setMcqAnswers({ ...mcqAnswers, [i]: key });
-                                    }
-                                }}
-                                disabled={!!selected}
-                                className="text-left text-sm px-4 py-2.5 rounded-lg transition-all"
-                                style={{ background: bg, border: `1px solid ${border}`, color: textColor, cursor: selected ? "default" : "pointer" }}
-                            >
-                                {key}) {val}
-                                {selected && key === q.answer && "  ✓"}
-                                {selected && key === selected && key !== q.answer && "  ✗"}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    })}
-</div>
+                                                            return (
+                                                                <button
+                                                                    key={key}
+                                                                    onClick={() => {
+                                                                        if (!selected) {
+                                                                            setMcqAnswers({ ...mcqAnswers, [i]: key });
+                                                                        }
+                                                                    }}
+                                                                    disabled={!!selected}
+                                                                    className="text-left text-sm px-4 py-2.5 rounded-lg transition-all"
+                                                                    style={{ background: bg, border: `1px solid ${border}`, color: textColor, cursor: selected ? "default" : "pointer" }}
+                                                                >
+                                                                    {key}) {val}
+                                                                    {selected && key === q.answer && "  ✓"}
+                                                                    {selected && key === selected && key !== q.answer && "  ✗"}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
                                     <div>
                                         <h3 className="font-semibold text-white mb-3">Essay questions</h3>
-                                        {result.essays.map((e, i) => (
-                                            <div key={i} className="mb-4 pb-4" style={{ borderBottom: i < result.essays.length - 1 ? "1px solid #1f1f2e" : "none" }}>
-                                                <p className="text-sm font-medium text-white mb-2">{i + 1}. {e.question}</p>
-                                                <p className="text-sm" style={{ color: "#9ca3af" }}>{e.modelAnswer}</p>
-                                            </div>
-                                        ))}
+                                        {result.essays.map((e, i) => {
+                                            const feedback = essayFeedback[i];
+                                            const isMarking = markingIndex === i;
+
+                                            return (
+                                                <div key={i} className="mb-5 pb-5" style={{ borderBottom: i < result.essays.length - 1 ? "1px solid #1f1f2e" : "none" }}>
+                                                    <p className="text-sm font-medium text-white mb-3">{i + 1}. {e.question}</p>
+
+                                                    <textarea
+                                                        placeholder="Type your answer here..."
+                                                        value={essayAnswers[i] || ""}
+                                                        onChange={(ev) => setEssayAnswers({ ...essayAnswers, [i]: ev.target.value })}
+                                                        disabled={!!feedback}
+                                                        rows={4}
+                                                        style={{ ...inputStyle, resize: "none", lineHeight: "1.6", marginBottom: "10px", opacity: feedback ? 0.6 : 1 }}
+                                                    />
+
+                                                    {!feedback ? (
+                                                        <button
+                                                            onClick={() => handleMarkEssay(i, e.question, e.modelAnswer)}
+                                                            disabled={isMarking}
+                                                            className="text-xs font-semibold px-4 py-2 rounded-full transition-all disabled:opacity-50"
+                                                            style={{ background: "#7c3aed", color: "white" }}
+                                                        >
+                                                            {isMarking ? "Marking..." : "Submit for marking"}
+                                                        </button>
+                                                    ) : (
+                                                        <div className="rounded-lg p-4 mt-2" style={{ background: "#1a1a2e", border: "1px solid #2d2d3d" }}>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{
+                                                                    background: feedback.verdict === "strong" ? "#16331f" : feedback.verdict === "good" ? "#1e1530" : "#331616",
+                                                                    color: feedback.verdict === "strong" ? "#4ade80" : feedback.verdict === "good" ? "#a78bfa" : "#f87171",
+                                                                }}>
+                                                                    {feedback.score}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm" style={{ color: "#9ca3af" }}>{feedback.feedback}</p>
+                                                            <details className="mt-3">
+                                                                <summary className="text-xs cursor-pointer" style={{ color: "#6b7280" }}>View model answer</summary>
+                                                                <p className="text-sm mt-2" style={{ color: "#9ca3af" }}>{e.modelAnswer}</p>
+                                                            </details>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
