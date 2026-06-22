@@ -57,6 +57,9 @@ Be fair and encouraging but honest. Base the score strictly on how well the stud
 
     } catch (error) {
         console.error("Marking error:", error.message);
-        return Response.json({ error: error.message }, { status: 500 });
-    }
+        if (error.message.includes("rate_limit") || error.message.includes("429")) {
+            return Response.json({ error: error.message }, { status: 500 });
+        }
+         return Response.json({ error: error.message }, { status: 500 });
+}
 }
