@@ -183,8 +183,11 @@ export default function Upload() {
             clearTimeout(timeoutId);
             if (!response.ok) throw new Error(`Server error: ${response.status}`);
             const data = await response.json();
-            if (data.error) throw new Error(data.error);
-            setResult(data.result);
+            if (data.error) {
+                setResult("Error: " + data.error);
+            } else {
+                setResult(data.result);
+            }
 
         } catch (error) {
             if (error.name === "AbortError") {
