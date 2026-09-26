@@ -64,6 +64,11 @@ export default function Upload() {
     const [essayAnswers, setEssayAnswers] = useState({});
     const [essayFeedback, setEssayFeedback] = useState({});
     const [markingIndex, setMarkingIndex] = useState(null);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState("");
+    const [chatLoading, setChatLoading] = useState(false);
+    const [showChat, setShowChat] = useState(false);
+    const [studyContent, setStudyContent] = useState("");
 
     useEffect(() => {
         const getUser = async () => {
@@ -167,6 +172,7 @@ export default function Upload() {
             formData.append("course", course);
             formData.append("time", time);
             formData.append("notes", contentToSend.slice(0, 5000));
+            setStudyContent(contentToSend.slice(0, 5000));
 
             const response = await fetch("/api/generate", {
                 method: "POST",
