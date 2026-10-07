@@ -61,7 +61,7 @@ Requirements:
                 },
                 { role: "user", content: prompt },
             ],
-            model: "llama-3.1-8b-instant",
+            model: "qwen/qwen3.8-27b",
             max_tokens: 8000,
             temperature: 0.7,
             response_format: { type: "json_object" },
