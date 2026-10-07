@@ -85,9 +85,11 @@ try {
         return Response.json({ result: parsed });
 
     } catch (error) {
-    console.error("Marking error:", error.message);
-    if (error.message.includes("rate_limit") || error.message.includes("429")) {
-        return Response.json({ error: "Our AI is currently busy. Please wait a minute and try again." }, { status: 429 });
+    console.error("Full error:", JSON.stringify(error, null, 2));
+    console.error("Error message:", error.message);
+    console.error("Error status:", error.status);
+        if (error.message.includes("rate_limit") || error.message.includes("429")) {
+            return Response.json({ error: "Our AI is currently busy. Please wait a minute and try again." }, { status: 429 });
     }
     return Response.json({ error: error.message }, { status: 500 });
 }
