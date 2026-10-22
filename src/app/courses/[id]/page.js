@@ -153,9 +153,19 @@ export default function CoursePage() {
                     ← Back to my courses
                 </a>
 
-                <h1 className="text-2xl font-bold text-white mt-3 mb-6">
+                <h1 className="text-2xl font-bold text-white mt-3 mb-4">
                     {course ? course.title : "Course"}
                 </h1>
+
+                {course && documents.length > 0 && (
+                    <a
+                        href={`/courses/${id}/chat`}
+                        className="inline-block font-semibold px-6 py-3 rounded-full mb-6"
+                        style={{ background: "#7c3aed", color: "white", fontSize: "15px" }}
+                    >
+                        Open tutor chat
+                    </a>
+                )}
 
                 {course && (
                     <div className="rounded-2xl p-6 flex flex-col gap-4 mb-6" style={{ background: "#12101a", border: "1px solid #1f1f2e" }}>
