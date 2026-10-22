@@ -101,13 +101,14 @@ export default function Courses() {
                 ) : (
                     <div className="flex flex-col gap-3">
                         {courses.map((c) => (
-                            <div
+                            <a
                                 key={c.id}
-                                className="rounded-xl px-5 py-4"
+                                href={`/courses/${c.id}`}
+                                className="rounded-xl px-5 py-4 block"
                                 style={{ background: "#12101a", border: "1px solid #1f1f2e", color: "white" }}
                             >
                                 {c.title}
-                            </div>
+                            </a>
                         ))}
                     </div>
                 )}
