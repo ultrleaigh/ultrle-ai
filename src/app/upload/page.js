@@ -220,9 +220,18 @@ export default function Upload() {
         setMarkingIndex(index);
 
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = "/signup";
+                return;
+            }
+
             const response = await fetch("/api/mark-essay", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${session.access_token}`,
+                },
                 body: JSON.stringify({ question, studentAnswer, modelAnswer }),
             });
 

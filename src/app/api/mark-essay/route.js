@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { createClient } from "@supabase/supabase-js";
 
 export const maxDuration = 30;
 
@@ -6,6 +7,21 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function POST(request) {
     try {
+        const authHeader = request.headers.get("authorization") || "";
+        const token = authHeader.replace("Bearer ", "").trim();
+        if (!token) {
+            return Response.json({ error: "Please log in to continue." }, { status: 401 });
+        }
+
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+        const { data: userData, error: userError } = await supabase.auth.getUser(token);
+        if (userError || !userData?.user) {
+            return Response.json({ error: "Your session has expired. Please log in again." }, { status: 401 });
+        }
+
         const { question, studentAnswer, modelAnswer } = await request.json();
 
         if (!studentAnswer || studentAnswer.trim().length < 10) {
