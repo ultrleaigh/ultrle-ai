@@ -40,8 +40,8 @@ Be fair and encouraging but honest. Base the score strictly on how well the stud
                 },
                 { role: "user", content: prompt },
             ],
-            model: "llama-3.3-70b-versatile",
-            max_tokens: 500,
+            model: "qwen/qwen3.8-27b",
+            max_tokens: 1500,
             temperature: 0.5,
             response_format: { type: "json_object" },
         });
@@ -52,14 +52,22 @@ Be fair and encouraging but honest. Base the score strictly on how well the stud
             return Response.json({ error: "No response from model." }, { status: 500 });
         }
 
-        const parsed = JSON.parse(text);
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (parseError) {
+            console.error("Marking JSON parse failed:", parseError.message);
+            return Response.json({ error: "The AI returned an invalid format. Please try submitting again." }, { status: 500 });
+        }
+
         return Response.json({ result: parsed });
 
     } catch (error) {
         console.error("Marking error:", error.message);
-        if (error.message.includes("rate_limit") || error.message.includes("429")) {
-            return Response.json({ error: error.message }, { status: 500 });
+        const message = error.message || "";
+        if (message.includes("rate_limit") || message.includes("429")) {
+            return Response.json({ error: "The AI is busy right now. Please wait a minute and try again." }, { status: 429 });
         }
-         return Response.json({ error: error.message }, { status: 500 });
-}
+        return Response.json({ error: "Something went wrong marking your answer. Please try again." }, { status: 500 });
+    }
 }

@@ -165,6 +165,13 @@ export default function Upload() {
             }
 
             setLoadingMessage("Generating your study plan...");
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = "/signup";
+                return;
+            }
+
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 55000);
             const formData = new FormData();
@@ -176,11 +183,13 @@ export default function Upload() {
 
             const response = await fetch("/api/generate", {
                 method: "POST",
+                headers: { Authorization: `Bearer ${session.access_token}` },
                 body: formData,
                 signal: controller.signal,
             });
 
             clearTimeout(timeoutId);
+            if (response.status === 401) throw new Error("Your session has expired. Please log in again.");
             if (!response.ok) throw new Error(`Server error: ${response.status}`);
             const data = await response.json();
             if (data.error) {
