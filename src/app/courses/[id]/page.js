@@ -4,12 +4,20 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+const WINDOW = 10;
+const PAUSE_MS = 20000;
+const BUSY_WAIT_MS = 60000;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export default function CoursePage() {
     const { id } = useParams();
     const [course, setCourse] = useState(null);
     const [documents, setDocuments] = useState([]);
+    const [topics, setTopics] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [mappingId, setMappingId] = useState(null);
     const [status, setStatus] = useState("");
     const [error, setError] = useState("");
 
@@ -25,6 +33,15 @@ export default function CoursePage() {
         } else {
             setDocuments(data);
         }
+    };
+
+    const loadTopics = async () => {
+        const { data } = await supabase
+            .from("topics")
+            .select("id, document_id, position, title, description, page_start, page_end")
+            .eq("course_id", id)
+            .order("position", { ascending: true });
+        setTopics(data || []);
     };
 
     useEffect(() => {
@@ -49,6 +66,7 @@ export default function CoursePage() {
 
             setCourse(courseData);
             await loadDocuments();
+            await loadTopics();
             setLoading(false);
         };
         init();
@@ -138,6 +156,90 @@ export default function CoursePage() {
         }
     };
 
+    const mappedEndOf = (docId) => {
+        const own = topics.filter((t) => t.document_id === docId);
+        return own.length ? Math.max(...own.map((t) => t.page_end)) : 0;
+    };
+
+    const buildMap = async (doc) => {
+        setMappingId(doc.id);
+        setError("");
+
+        try {
+            const { data: latest } = await supabase
+                .from("topics")
+                .select("page_end")
+                .eq("document_id", doc.id)
+                .order("page_end", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            let nextPage = latest ? latest.page_end + 1 : 1;
+
+            while (nextPage <= doc.page_count) {
+                const start = nextPage;
+                const end = Math.min(start + WINDOW - 1, doc.page_count);
+                setStatus(`Building your course map: pages ${start} to ${end} of ${doc.page_count}...`);
+
+                let attempts = 0;
+                let result = null;
+
+                while (true) {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                        window.location.href = "/signup";
+                        return;
+                    }
+
+                    const res = await fetch("/api/map", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${session.access_token}`,
+                        },
+                        body: JSON.stringify({ documentId: doc.id, startPage: start, endPage: end }),
+                    });
+                    const data = await res.json();
+
+                    if (res.status === 429) {
+                        attempts += 1;
+                        if (attempts > 3) {
+                            throw new Error("This is taking longer than expected. Wait a few minutes, then press Continue course map.");
+                        }
+                        setStatus("This section is taking a little longer. Retrying shortly...");
+                        await sleep(BUSY_WAIT_MS);
+                        setStatus(`Building your course map: pages ${start} to ${end} of ${doc.page_count}...`);
+                        continue;
+                    }
+
+                    if (!res.ok) {
+                        throw new Error(data.error || "Something went wrong while building the map.");
+                    }
+
+                    result = data;
+                    break;
+                }
+
+                nextPage = result.nextPage;
+                await loadTopics();
+
+                if (nextPage <= doc.page_count) {
+                    setStatus("Preparing the next section...");
+                    await sleep(PAUSE_MS);
+                }
+            }
+
+            setStatus("Course map ready.");
+        } catch (err) {
+            console.error(err);
+            setError(err.message || "Building the map stopped. Press Continue course map to resume.");
+            setStatus("");
+        } finally {
+            await loadTopics();
+            setMappingId(null);
+        }
+    };
+
     if (loading) {
         return (
             <main className="min-h-screen flex items-center justify-center" style={{ background: "#0a0a0f" }}>
@@ -145,6 +247,8 @@ export default function CoursePage() {
             </main>
         );
     }
+
+    const busy = uploading || mappingId !== null;
 
     return (
         <main className="min-h-screen px-4 py-12" style={{ background: "#0a0a0f" }}>
@@ -173,9 +277,9 @@ export default function CoursePage() {
                             Add a lecture PDF
                         </label>
                         <div
-                            onClick={() => !uploading && document.getElementById("pdfInput").click()}
+                            onClick={() => !busy && document.getElementById("pdfInput").click()}
                             className="flex flex-col items-center justify-center cursor-pointer rounded-xl py-8"
-                            style={{ border: "1.5px dashed #2d2d3d", background: "#1a1a2e", opacity: uploading ? 0.6 : 1 }}
+                            style={{ border: "1.5px dashed #2d2d3d", background: "#1a1a2e", opacity: busy ? 0.6 : 1 }}
                         >
                             <p className="text-sm" style={{ color: "#6b7280" }}>
                                 {uploading ? "Working..." : "Click to choose a PDF"}
@@ -183,29 +287,76 @@ export default function CoursePage() {
                             <p className="text-xs mt-1" style={{ color: "#6b7280" }}>Max 10MB</p>
                         </div>
                         <input id="pdfInput" type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                        {status && <p style={{ color: "#a78bfa", fontSize: "13px" }}>{status}</p>}
                     </div>
                 )}
 
+                {status && <p style={{ color: "#a78bfa", fontSize: "13px", marginBottom: "12px" }}>{status}</p>}
                 {error && <p style={{ color: "#f87171", fontSize: "13px", marginBottom: "16px" }}>{error}</p>}
 
                 {course && (
                     documents.length === 0 ? (
                         <p style={{ color: "#6b7280" }}>No files yet. Add your first lecture PDF above.</p>
                     ) : (
-                        <div className="flex flex-col gap-3">
-                            {documents.map((d) => (
-                                <div
-                                    key={d.id}
-                                    className="rounded-xl px-5 py-4"
-                                    style={{ background: "#12101a", border: "1px solid #1f1f2e", color: "white" }}
-                                >
-                                    <div style={{ fontSize: "14px" }}>{d.file_name}</div>
-                                    <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "2px" }}>
-                                        {d.page_count} pages saved
+                        <div className="flex flex-col gap-4">
+                            {documents.map((d) => {
+                                const mappedEnd = mappedEndOf(d.id);
+                                const complete = mappedEnd >= d.page_count;
+                                const own = topics.filter((t) => t.document_id === d.id);
+                                const isMapping = mappingId === d.id;
+
+                                return (
+                                    <div
+                                        key={d.id}
+                                        className="rounded-xl px-5 py-4"
+                                        style={{ background: "#12101a", border: "1px solid #1f1f2e", color: "white" }}
+                                    >
+                                        <div style={{ fontSize: "14px" }}>{d.file_name}</div>
+                                        <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "2px" }}>
+                                            {d.page_count} pages saved
+                                            {" · "}
+                                            {complete
+                                                ? `Course map ready (${own.length} topics)`
+                                                : mappedEnd > 0
+                                                    ? `Partly mapped (to page ${mappedEnd} of ${d.page_count})`
+                                                    : "Course map not built yet"}
+                                        </div>
+
+                                        {!complete && (
+                                            <button
+                                                onClick={() => buildMap(d)}
+                                                disabled={busy}
+                                                className="font-semibold px-4 py-2 rounded-full mt-3 disabled:opacity-50"
+                                                style={{ background: "#7c3aed", color: "white", fontSize: "13px" }}
+                                            >
+                                                {isMapping
+                                                    ? "Building..."
+                                                    : mappedEnd > 0
+                                                        ? "Continue course map"
+                                                        : "Build course map"}
+                                            </button>
+                                        )}
+
+                                        {own.length > 0 && (
+                                            <details className="mt-3" open={complete}>
+                                                <summary className="text-xs cursor-pointer" style={{ color: "#a78bfa" }}>
+                                                    Topics ({own.length})
+                                                </summary>
+                                                <ol className="mt-2 flex flex-col gap-2" style={{ paddingLeft: "0", listStyle: "none" }}>
+                                                    {own.map((t, i) => (
+                                                        <li key={t.id} style={{ fontSize: "13px" }}>
+                                                            <span style={{ color: "white" }}>{i + 1}. {t.title}</span>
+                                                            <span style={{ color: "#6b7280" }}> (pages {t.page_start} to {t.page_end})</span>
+                                                            {t.description && (
+                                                                <div style={{ color: "#9ca3af", fontSize: "12px" }}>{t.description}</div>
+                                                            )}
+                                                        </li>
+                                                    ))}
+                                                </ol>
+                                            </details>
+                                        )}
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )
                 )}
